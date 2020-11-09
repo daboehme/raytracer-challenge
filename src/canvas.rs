@@ -13,6 +13,9 @@ impl Color {
     pub fn new(r: f32, g: f32, b: f32) -> Color {
         Color { r: r, g: g, b: b }
     }
+
+    pub const BLACK: Color = Color { r: 0.0, g: 0.0, b: 0.0 };
+    pub const RED:   Color = Color { r: 0.0, g: 0.0, b: 0.0 };
 }
 
 pub struct Canvas {
@@ -60,7 +63,7 @@ mod tests {
 
     #[test]
     fn write_to_ppm() {
-        let mut canvas = Canvas::new(5, 3, Color::new(0.0, 0.0, 0.0));
+        let mut canvas = Canvas::new(5, 3, Color::BLACK);
 
         canvas.set(0, 0, Color::new( 1.5, 0.0, 0.0));
         canvas.set(2, 1, Color::new( 0.0, 0.5, 0.0));

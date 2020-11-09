@@ -25,8 +25,6 @@ pub fn fire(velocity: &linalg::V4, gravity: &linalg::V4, wind: &linalg::V4, canv
     }
 
     let v = linalg::V4::add(gravity, &wind);
-    let c = canvas::Color::new(0.8, 0.2, 0.2);
-
     let mut count = 0;
 
     while p.pos.y() > 0.0 {
@@ -34,7 +32,7 @@ pub fn fire(velocity: &linalg::V4, gravity: &linalg::V4, wind: &linalg::V4, canv
         count += 1;
 
         if fits(&p, canvas) {
-            canvas.set(p.pos.x() as usize, p.pos.y() as usize, c)
+            canvas.set(p.pos.x() as usize, p.pos.y() as usize, canvas::Color::RED)
         }
     };
 
