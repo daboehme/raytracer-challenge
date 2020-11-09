@@ -35,16 +35,16 @@ impl V4 {
         V4(self.0/m, self.1/m, self.2/m, self.3/m)
     }
 
+    pub fn mult(&self, f: f32) -> V4 {
+        V4(f * self.0, f * self.1, f * self.2, f * self.3)
+    }
+
     pub fn add(a: &V4, b: &V4) -> V4 {
         V4(a.0 + b.0, a.1 + b.1, a.2 + b.2, a.3 + b.3)
     }
 
     pub fn sub(a: &V4, b: &V4) -> V4 {
         V4(a.0 - b.0, a.1 - b.1, a.2 - b.2, a.3 - b.3)
-    }
-
-    pub fn mult(f: f32, a: &V4) -> V4 {
-        V4(f * a.0, f * a.1, f * a.2, f * a.3)
     }
 
     pub fn dot(a: &V4, b: &V4) -> f32 {
