@@ -61,11 +61,11 @@ impl V4 {
 }
 
 #[derive(Clone,Copy,Debug,PartialEq)]
-pub struct M4x4([f32; 16]);
+pub struct M4([f32; 16]);
 
-impl M4x4 {
-    pub fn identity() -> M4x4 {
-        M4x4([
+impl M4 {
+    pub fn identity() -> M4 {
+        M4([
             1.0, 0.0, 0.0, 0.0,
             0.0, 1.0, 0.0, 0.0,
             0.0, 0.0, 1.0, 0.0,
@@ -73,8 +73,8 @@ impl M4x4 {
         ])
     }
 
-    pub fn from_array(a: &[f32; 16]) -> M4x4 {
-        M4x4(*a)
+    pub fn from_array(a: &[f32; 16]) -> M4 {
+        M4(*a)
     }
 
     pub fn set(&mut self, row: usize, col: usize, val: f32) {
@@ -85,18 +85,72 @@ impl M4x4 {
         self.0[4*row+col]
     }
 
-    pub fn transpose(&self) -> M4x4 {
-        M4x4([
+    pub fn transpose(&self) -> M4 {
+        M4([
             self.0[0*4+0], self.0[1*4+0], self.0[2*4+0], self.0[3*4+0],
             self.0[0*4+1], self.0[1*4+1], self.0[2*4+1], self.0[3*4+1],
             self.0[0*4+2], self.0[1*4+2], self.0[2*4+2], self.0[3*4+2],
             self.0[0*4+3], self.0[1*4+3], self.0[2*4+3], self.0[3*4+3]
         ])
     }
+
+    fn minor(&self, row: usize, col: usize) -> f32 {
+        fn skip(i: usize) -> [usize;3] {
+            match i {
+                0  => [1,2,3],
+                1  => [0,2,3],
+                2  => [0,1,3],
+                3  => [0,1,2],
+                _  => panic!("M4::minor(): Invalid index")
+            }
+        }
+
+        let rows = skip(row);
+        let cols = skip(col);
+
+        let a = self.0[rows[0]*4+cols[0]];
+        let b = self.0[rows[0]*4+cols[1]];
+        let c = self.0[rows[0]*4+cols[2]];
+
+        let d = self.0[rows[1]*4+cols[0]];
+        let e = self.0[rows[1]*4+cols[1]];
+        let f = self.0[rows[1]*4+cols[2]];
+
+        let g = self.0[rows[2]*4+cols[0]];
+        let h = self.0[rows[2]*4+cols[1]];
+        let i = self.0[rows[2]*4+cols[2]];
+
+        (a*e*i) + (b*f*g) + (c*d*h) - (c*e*g) - (b*d*i) - (a*f*h)
+    }
+
+    fn cofactor(&self, row: usize, col: usize) -> f32 {
+        let f = if (row+col) % 2 == 0 { 1.0_f32 } else { -1.0_f32 };
+        f * self.minor(row,col)
+    }
+
+    pub fn determinant(&self) -> f32 {
+          self.0[0] * self.minor(0,0) 
+        - self.0[1] * self.minor(0,1) 
+        + self.0[2] * self.minor(0,2) 
+        - self.0[3] * self.minor(0,3)
+    }
+
+    pub fn invert(&self) -> M4 {
+        let mut m = M4([ 0.0; 16 ]);
+        let d = self.determinant();
+
+        for row in 0..4 {
+            for col in 0..4 {
+                m.set(col, row, self.cofactor(row, col) / d)
+            }
+        }
+
+        m
+    }
 }
 
-pub fn mmul(a: &M4x4, b: &M4x4) -> M4x4 {
-    let mut c = M4x4([ 0.0; 16 ]);
+pub fn mmul(a: &M4, b: &M4) -> M4 {
+    let mut c = M4([ 0.0; 16 ]);
 
     for y in 0..4 {
         for x in 0..4 {
@@ -111,7 +165,7 @@ pub fn mmul(a: &M4x4, b: &M4x4) -> M4x4 {
     c
 }
 
-pub fn mvmul(m: &M4x4, v: &V4) -> V4 {
+pub fn mvmul(m: &M4, v: &V4) -> V4 {
     V4(
         m.0[0*4+0] * v.0 + 
         m.0[0*4+1] * v.1 +
@@ -135,11 +189,31 @@ pub fn mvmul(m: &M4x4, v: &V4) -> V4 {
     )
 }
 
+use float_cmp::ApproxEq;
+impl<'a> ApproxEq for &'a M4 {
+    type Margin = float_cmp::F32Margin;
+
+    fn approx_eq<T: Into<float_cmp::F32Margin>>(self, other: Self, margin: T) -> bool {
+        let margin = margin.into();
+
+        for row in 0..4 {
+            for col in 0..4 {
+                if !self.0[row*4+col].approx_eq(other.0[row*4+col], margin) {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
+    use float_cmp::*;
 
     #[test]
     fn make_point() {
@@ -197,7 +271,7 @@ mod tests {
 
     #[test]
     fn matrix_set_at() {
-        let mut a = M4x4::identity();
+        let mut a = M4::identity();
         assert_eq!(a.at(0, 0), 1.0);
         assert_eq!(a.at(0, 1), 0.0);
         assert_eq!(a.at(1, 1), 1.0);
@@ -210,20 +284,20 @@ mod tests {
 
     #[test]
     fn mm_mul() {
-        let a = M4x4([ 
+        let a = M4([ 
             1.0, 2.0, 3.0, 4.0,
             5.0, 6.0, 7.0, 8.0,
             9.0, 8.0, 7.0, 6.0,
             5.0, 4.0, 3.0, 2.0
         ]);
-        let b = M4x4([
+        let b = M4([
             -2.0, 1.0, 2.0,  3.0,
              3.0, 2.0, 1.0, -1.0,
              4.0, 3.0, 6.0,  5.0,
              1.0, 2.0, 7.0,  8.0
         ]);
 
-        let res = M4x4([
+        let res = M4([
             20.0, 22.0,  50.0,  48.0,
             44.0, 54.0, 114.0, 108.0,
             40.0, 58.0, 110.0, 102.0,
@@ -232,13 +306,13 @@ mod tests {
 
         assert_eq!(mmul(&a, &b), res);
 
-        let  i = M4x4::identity();
+        let  i = M4::identity();
         assert_eq!(mmul(&a, &i), a);
     }
 
     #[test]
     fn mv_mul() {
-        let a = M4x4([
+        let a = M4([
             1.0, 2.0, 3.0, 4.0,
             2.0, 4.0, 4.0, 2.0,
             8.0, 6.0, 4.0, 1.0,
@@ -253,13 +327,13 @@ mod tests {
 
     #[test]
     fn transpose() {
-        let m = M4x4([
+        let m = M4([
             0.0, 9.0, 3.0, 0.0,
             9.0, 8.0, 0.0, 8.0,
             1.0, 8.0, 5.0, 3.0,
             0.0, 0.0, 5.0, 8.0
         ]);
-        let t = M4x4([
+        let t = M4([
             0.0, 9.0, 1.0, 0.0,
             9.0, 8.0, 8.0, 0.0,
             3.0, 0.0, 5.0, 5.0,
@@ -267,6 +341,47 @@ mod tests {
         ]);
 
         assert_eq!(m.transpose(), t);
-        assert_eq!(M4x4::identity().transpose(), M4x4::identity());
+        assert_eq!(M4::identity().transpose(), M4::identity());
+    }
+
+    #[test]
+    fn determinant() {
+        let m = M4([
+            -2.0, -8.0,  3.0,  5.0,
+            -3.0,  1.0,  7.0,  3.0,
+             1.0,  2.0, -9.0,  6.0,
+            -6.0,  7.0,  7.0, -9.0
+        ]);
+
+        assert_eq!(m.cofactor(0, 0),   690.0);
+        assert_eq!(m.cofactor(0, 1),   447.0);
+        assert_eq!(m.cofactor(0, 2),   210.0);
+        assert_eq!(m.cofactor(0, 3),    51.0);
+        assert_eq!(m.determinant(),  -4071.0);
+    }
+
+    #[test]
+    fn invert() {
+        let m = M4([
+             9.0,   3.0,  0.0,  9.0,
+            -5.0,  -2.0, -6.0, -3.0,
+            -4.0,   9.0,  6.0,  4.0,
+            -7.0,   6.0,  6.0,  2.0
+        ]).invert();
+
+        let result = M4([
+            -0.04074, -0.07778,  0.14444, -0.22222,
+            -0.07778,  0.03333,  0.36667, -0.33333,
+            -0.02901, -0.14630, -0.10926,  0.12963,
+             0.17778,  0.06667, -0.26667,  0.33333
+        ]);
+
+        // for r in 0..4 {
+        //     for c in 0..4 {
+        //         assert!(approx_eq!(f32, m.at(r,c), result.at(r,c), epsilon = 0.0001), "m[{},{}] = {} (expected {})", r,c,m.at(r,c),result.at(r,c))
+        //     }
+        // }
+
+        assert!(approx_eq!(&M4, &m, &result, epsilon = 0.0001));
     }
 }
