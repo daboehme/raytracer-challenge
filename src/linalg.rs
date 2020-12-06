@@ -190,6 +190,20 @@ pub fn mvmul(m: &M4, v: &V4) -> V4 {
 }
 
 use float_cmp::ApproxEq;
+
+impl ApproxEq for V4 {
+    type Margin = float_cmp::F32Margin;
+
+    fn approx_eq<T: Into<float_cmp::F32Margin>>(self, other: Self, margin: T) -> bool {
+        let margin = margin.into();
+
+        self.0.approx_eq(other.0, margin) &&
+        self.1.approx_eq(other.1, margin) &&
+        self.2.approx_eq(other.2, margin) &&
+        self.3.approx_eq(other.3, margin)
+    }
+}
+
 impl<'a> ApproxEq for &'a M4 {
     type Margin = float_cmp::F32Margin;
 
