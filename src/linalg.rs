@@ -1,4 +1,4 @@
-use std::ops::{Add,Sub};
+use std::ops::{Add,Sub,Neg};
 
 #[derive(Clone,Copy,Debug,PartialEq)]
 pub struct V4 (f32, f32, f32, f32);
@@ -28,10 +28,6 @@ impl V4 {
         self.3
     }
 
-    pub fn neg(&self) -> V4 {
-        V4(-self.0, -self.1, -self.2, -self.3)
-    }
-
     pub fn magnitude(&self) -> f32 {
         (self.0*self.0 + self.1*self.1 + self.2*self.2 + self.3*self.3).sqrt()
     }
@@ -51,6 +47,10 @@ impl V4 {
 
     pub fn cross(a: &V4, b: &V4) -> V4 {
         V4::make_vector(a.1*b.2-a.2*b.1, a.2*b.0-a.0*b.2, a.0*b.1-a.1*b.0)
+    }
+
+    pub fn reflect(a: V4, b: V4) -> V4 {
+        a - b.mult(2.0 * V4::dot(&a, &b))
     }
 }
 
@@ -77,6 +77,14 @@ impl Sub for V4 {
             self.2 - other.2,
             self.3 - other.3
         )
+    }
+}
+
+impl Neg for V4 {
+    type Output = Self;
+
+    fn neg(self) -> Self {
+        V4(-self.0, -self.1, -self.2, -self.3)
     }
 }
 
@@ -301,6 +309,19 @@ mod tests {
         assert_eq!(c.x(), 1.0);
         assert_eq!(c.y(), -2.0);
         assert_eq!(c.z(), 1.0)
+    }
+
+    #[test]
+    fn reflect() {
+        let v = V4::make_vector(1.0, -1.0, 0.0);
+        let n = V4::make_vector(0.0, 1.0, 0.0);
+        assert_eq!(V4::reflect(v, n), V4::make_vector(1.0, 1.0, 0.0));
+
+        let sq2half = std::f32::consts::SQRT_2 / 2.0;
+
+        let v = V4::make_vector(0.0, -1.0, 0.0);
+        let n = V4::make_vector(sq2half, sq2half, 0.0);
+        assert!(approx_eq!(V4, V4::reflect(v, n), V4::make_vector(1.0, 0.0, 0.0)))
     }
 
     #[test]
