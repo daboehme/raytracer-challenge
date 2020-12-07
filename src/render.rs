@@ -1,5 +1,7 @@
 use crate::linalg;
 
+use std::convert::From;
+
 #[derive(Clone,Copy,Debug)]
 pub struct Color {
     pub r: f32,
@@ -17,6 +19,18 @@ impl Color {
     pub const RED:   Color = Color { r: 1.0, g: 0.0, b: 0.0 };
 }
 
+impl From<linalg::V4> for Color {
+    fn from(v: linalg::V4) -> Color {
+        Color { r: v.x(), g: v.y(), b: v.z() }
+    }
+}
+
+impl From<Color> for linalg::V4 {
+    fn from(c: Color) -> linalg::V4 {
+        linalg::V4::make_vector(c.r, c.g, c.b)
+    }
+}
+
 #[derive(Clone,Copy,Debug)]
 pub struct Material {
     pub color: Color,
@@ -27,19 +41,128 @@ pub struct Material {
 }
 
 #[derive(Clone,Copy,Debug)]
-pub struct Light {
+pub struct LightSource {
     pub intensity: Color,
     pub pos: linalg::V4
 }
 
 pub fn lighting
     (
-        material: Material, 
-        light:    Light,
-        point:    linalg::V4,
-        eyev:     linalg::V4,
-        normalv:  linalg::V4
-    ) -> Color 
+        material: &Material,
+        light:    &LightSource,
+        point:    &linalg::V4,
+        eyev:     &linalg::V4,
+        normalv:  &linalg::V4
+    ) -> Color
 {
-    Color::BLACK
+    let mc = material.color;
+    let lc = light.intensity;
+    let colorv = linalg::V4::make_vector(mc.r*lc.r, mc.g*lc.g, mc.b*lc.b);
+    let lightv = (light.pos - *point).normalize();
+
+    let ambient = colorv.mult(material.ambient);
+
+    let mut diffuse  = linalg::V4::from(Color::BLACK);
+    let mut specular = linalg::V4::from(Color::BLACK);
+
+    let light_dot_normal = linalg::V4::dot(&lightv, normalv);
+
+    if light_dot_normal >= 0.0 {
+        diffuse = colorv.mult(material.diffuse * light_dot_normal);
+
+        let reflectv = linalg::V4::reflect(-lightv, *normalv);
+        let reflect_dot_eye = linalg::V4::dot(&reflectv, eyev);
+
+        if reflect_dot_eye > 0.0 {
+            let f = reflect_dot_eye.powf(material.shininess);
+            specular = linalg::V4::from(light.intensity).mult(f * material.specular);
+        }
+    }
+
+    println!("ambient: {:?}, diffuse: {:?}, specular: {:?}", ambient, diffuse, specular);
+
+    Color::from(diffuse + ambient + specular)
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use linalg::*;
+    use float_cmp::*;
+
+    const MATERIAL : Material = Material {
+        color: Color::WHITE,
+        ambient: 0.1,
+        diffuse: 0.9,
+        specular: 0.9,
+        shininess: 200.0
+    };
+
+    #[test]
+    fn frontal_lighting() {
+        let eyev = V4::make_vector(0.0, 0.0, -1.0);
+        let normalv = V4::make_vector(0.0, 0.0, -1.0);
+        let light = LightSource {
+            intensity: Color::WHITE,
+            pos: V4::make_point(0.0, 0.0, -10.0)
+        };
+        let pos = V4::make_point(0.0, 0.0, 0.0);
+
+        let val = lighting(&MATERIAL, &light, &pos, &eyev, &normalv);
+        let val = V4::from(val);
+
+        assert!(approx_eq!(V4, val, V4::make_vector(1.9, 1.9, 1.9), epsilon = 0.0001));
+    }
+
+    #[test]
+    fn angled_lighting() {
+        let sq2half = 0.5 * std::f32::consts::SQRT_2;
+        let eyev = V4::make_vector(0.0, sq2half, sq2half);
+        let normalv = V4::make_vector(0.0, 0.0, -1.0);
+        let light = LightSource {
+            intensity: Color::WHITE,
+            pos: V4::make_point(0.0, 0.0, -10.0)
+        };
+        let pos = V4::make_point(0.0, 0.0, 0.0);
+
+        let val = lighting(&MATERIAL, &light, &pos, &eyev, &normalv);
+        let val = V4::from(val);
+
+        assert!(approx_eq!(V4, val, V4::make_vector(1.0, 1.0, 1.0), epsilon = 0.0001));
+    }
+
+    #[test]
+    fn opposite_surface() {
+        let eyev = V4::make_vector(0.0, 0.0, -1.0);
+        let normalv = V4::make_vector(0.0, 0.0, -1.0);
+        let light = LightSource {
+            intensity: Color::WHITE,
+            pos: V4::make_point(0.0, 10.0, -10.0)
+        };
+        let pos = V4::make_point(0.0, 0.0, 0.0);
+
+        let val = V4::from(lighting(&MATERIAL, &light, &pos, &eyev, &normalv));
+        let exp = V4::make_vector(0.7364, 0.7364, 0.7364);
+
+        assert!(approx_eq!(V4, val, exp, epsilon = 0.0001));
+    }
+
+    #[test]
+    fn reflect_light() {
+        let sq2half = 0.5 * std::f32::consts::SQRT_2;
+        let eyev = V4::make_vector(0.0, -sq2half, -sq2half);
+        let normalv = V4::make_vector(0.0, 0.0, -1.0);
+        let light = LightSource {
+            intensity: Color::WHITE,
+            pos: V4::make_point(0.0, 10.0, -10.0)
+        };
+        let pos = V4::make_point(0.0, 0.0, 0.0);
+
+        let val = linalg::V4::from(lighting(&MATERIAL, &light, &pos, &eyev, &normalv));
+        let exp = linalg::V4::make_vector(1.6364, 1.6364, 1.6364);
+
+        assert!(approx_eq!(V4, val, exp, epsilon = 0.0001));
+    }
+
 }

@@ -1,5 +1,5 @@
-mod cannon;
 mod canvas;
+mod experiment;
 mod linalg;
 mod objects;
 mod ray;
@@ -9,13 +9,8 @@ mod transform;
 use std::fs::File;
 
 fn main() {
-    let gravity = linalg::V4::make_vector(0.0, -0.1, 0.0);
-    let wind = linalg::V4::make_vector(-0.01, 0.0, 0.0);
-    let vel = linalg::V4::make_vector(1.0, 1.8, 0.0).normalize().mult(11.25);
-    let mut canvas = canvas::Canvas::new(900, 500, render::Color::BLACK);
+    let canvas = experiment::draw_sphere();
 
-    println!("{} steps", cannon::fire(&vel, &gravity, &wind, &mut canvas));
-
-    let mut file = File::create("cannon.ppm").expect("Could not open file");
+    let mut file = File::create("render.ppm").expect("Could not open file");
     canvas.write_to_ppm(&mut file).expect("Could not write canvas");
 }
