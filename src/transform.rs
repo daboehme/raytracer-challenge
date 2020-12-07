@@ -201,7 +201,7 @@ mod tests {
             .translate(10.0, 5.0, 7.0)
             .scale(5.0, 5.0, 5.0)
             .rotate_x(std::f32::consts::FRAC_PI_2);
-        
+
         let q = t.apply(&p);
 
         assert!(approx_eq!(V4, q, r));

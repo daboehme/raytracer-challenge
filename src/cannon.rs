@@ -8,8 +8,8 @@ struct Projectile {
 
 fn tick(p: &Projectile, v: &linalg::V4) -> Projectile {
     Projectile {
-        pos: linalg::V4::add(&p.pos, &p.velocity),
-        velocity: linalg::V4::add(&p.velocity, &v)
+        pos: p.pos + p.velocity,
+        velocity: p.velocity + *v
     }
 }
 
@@ -24,7 +24,7 @@ pub fn fire(velocity: &linalg::V4, gravity: &linalg::V4, wind: &linalg::V4, canv
         p.pos.y() > 0.0 && p.pos.y() < canvas.height as f32
     }
 
-    let v = linalg::V4::add(gravity, &wind);
+    let v = *gravity + *wind;
     let mut count = 0;
 
     while p.pos.y() > 0.0 {

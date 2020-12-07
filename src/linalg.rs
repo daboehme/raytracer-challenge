@@ -1,3 +1,5 @@
+use std::ops::{Add,Sub};
+
 #[derive(Clone,Copy,Debug,PartialEq)]
 pub struct V4 (f32, f32, f32, f32);
 
@@ -43,20 +45,38 @@ impl V4 {
         V4(f * self.0, f * self.1, f * self.2, f * self.3)
     }
 
-    pub fn add(a: &V4, b: &V4) -> V4 {
-        V4(a.0 + b.0, a.1 + b.1, a.2 + b.2, a.3 + b.3)
-    }
-
-    pub fn sub(a: &V4, b: &V4) -> V4 {
-        V4(a.0 - b.0, a.1 - b.1, a.2 - b.2, a.3 - b.3)
-    }
-
     pub fn dot(a: &V4, b: &V4) -> f32 {
         a.0*b.0 + a.1*b.1 + a.2*b.2 + a.3*b.3
     }
 
     pub fn cross(a: &V4, b: &V4) -> V4 {
         V4::make_vector(a.1*b.2-a.2*b.1, a.2*b.0-a.0*b.2, a.0*b.1-a.1*b.0)
+    }
+}
+
+impl Add for V4 {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        V4(
+            self.0 + other.0,
+            self.1 + other.1,
+            self.2 + other.2,
+            self.3 + other.3
+        )
+    }
+}
+
+impl Sub for V4 {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        V4(
+            self.0 - other.0,
+            self.1 - other.1,
+            self.2 - other.2,
+            self.3 - other.3
+        )
     }
 }
 
@@ -129,9 +149,9 @@ impl M4 {
     }
 
     pub fn determinant(&self) -> f32 {
-          self.0[0] * self.minor(0,0) 
-        - self.0[1] * self.minor(0,1) 
-        + self.0[2] * self.minor(0,2) 
+          self.0[0] * self.minor(0,0)
+        - self.0[1] * self.minor(0,1)
+        + self.0[2] * self.minor(0,2)
         - self.0[3] * self.minor(0,3)
     }
 
@@ -154,7 +174,7 @@ pub fn mmul(a: &M4, b: &M4) -> M4 {
 
     for y in 0..4 {
         for x in 0..4 {
-            c.0[4*y+x] = 
+            c.0[4*y+x] =
                 a.0[4*y+0] * b.0[0*4+x] +
                 a.0[4*y+1] * b.0[1*4+x] +
                 a.0[4*y+2] * b.0[2*4+x] +
@@ -167,22 +187,22 @@ pub fn mmul(a: &M4, b: &M4) -> M4 {
 
 pub fn mvmul(m: &M4, v: &V4) -> V4 {
     V4(
-        m.0[0*4+0] * v.0 + 
+        m.0[0*4+0] * v.0 +
         m.0[0*4+1] * v.1 +
         m.0[0*4+2] * v.2 +
         m.0[0*4+3] * v.3,
 
-        m.0[1*4+0] * v.0 + 
+        m.0[1*4+0] * v.0 +
         m.0[1*4+1] * v.1 +
         m.0[1*4+2] * v.2 +
         m.0[1*4+3] * v.3,
 
-        m.0[2*4+0] * v.0 + 
+        m.0[2*4+0] * v.0 +
         m.0[2*4+1] * v.1 +
         m.0[2*4+2] * v.2 +
         m.0[2*4+3] * v.3,
 
-        m.0[3*4+0] * v.0 + 
+        m.0[3*4+0] * v.0 +
         m.0[3*4+1] * v.1 +
         m.0[3*4+2] * v.2 +
         m.0[3*4+3] * v.3
@@ -242,7 +262,7 @@ mod tests {
     fn add_pv() {
         let p = V4::make_point(4.0, -5.5, 10.0);
         let v = V4::make_vector(1.5, 2.0, 3.5);
-        let r = V4::add(&p, &v);
+        let r = p + v;
         assert_eq!(r.x(), 5.5);
         assert_eq!(r.y(), -3.5);
         assert_eq!(r.z(), 13.5);
@@ -298,7 +318,7 @@ mod tests {
 
     #[test]
     fn mm_mul() {
-        let a = M4([ 
+        let a = M4([
             1.0, 2.0, 3.0, 4.0,
             5.0, 6.0, 7.0, 8.0,
             9.0, 8.0, 7.0, 6.0,
@@ -332,7 +352,7 @@ mod tests {
             8.0, 6.0, 4.0, 1.0,
             0.0, 0.0, 0.0, 1.0
         ]);
-        
+
         let v   = V4(1.0,   2.0,  3.0, 1.0);
         let res = V4(18.0, 24.0, 33.0, 1.0);
 

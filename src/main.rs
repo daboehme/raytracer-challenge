@@ -2,6 +2,8 @@ mod cannon;
 mod canvas;
 mod linalg;
 mod transform;
+mod ray;
+mod objects;
 
 use std::fs::File;
 
