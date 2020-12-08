@@ -60,7 +60,7 @@ pub fn lighting
     let colorv = linalg::V4::make_vector(mc.r*lc.r, mc.g*lc.g, mc.b*lc.b);
     let lightv = (light.pos - *point).normalize();
 
-    let ambient = colorv.mult(material.ambient);
+    let ambient = colorv * material.ambient;
 
     let mut diffuse  = linalg::V4::from(Color::BLACK);
     let mut specular = linalg::V4::from(Color::BLACK);
@@ -68,20 +68,18 @@ pub fn lighting
     let light_dot_normal = linalg::V4::dot(&lightv, normalv);
 
     if light_dot_normal >= 0.0 {
-        diffuse = colorv.mult(material.diffuse * light_dot_normal);
+        diffuse = colorv * material.diffuse * light_dot_normal;
 
         let reflectv = linalg::V4::reflect(-lightv, *normalv);
         let reflect_dot_eye = linalg::V4::dot(&reflectv, eyev);
 
         if reflect_dot_eye > 0.0 {
             let f = reflect_dot_eye.powf(material.shininess);
-            specular = linalg::V4::from(light.intensity).mult(f * material.specular);
+            specular = linalg::V4::from(light.intensity) * (f * material.specular);
         }
     }
 
-    println!("ambient: {:?}, diffuse: {:?}, specular: {:?}", ambient, diffuse, specular);
-
-    Color::from(diffuse + ambient + specular)
+    Color::from(ambient + diffuse + specular)
 }
 
 
@@ -164,5 +162,4 @@ mod tests {
 
         assert!(approx_eq!(V4, val, exp, epsilon = 0.0001));
     }
-
 }

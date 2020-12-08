@@ -1,5 +1,4 @@
 use crate::linalg;
-use crate::transform;
 
 #[derive(Clone,Copy,Debug,PartialEq)]
 pub struct Ray {
@@ -16,7 +15,7 @@ impl Ray {
     }
 
     pub fn position(&self, t: f32) -> linalg::V4 {
-        self.origin + self.direction.mult(t)
+        self.origin + self.direction * t
     }
 }
 
@@ -24,7 +23,7 @@ impl Ray {
 mod tests {
     use super::*;
     use linalg::*;
-    use transform::*;
+    use crate::transform::*;
     use float_cmp::*;
 
     #[test]

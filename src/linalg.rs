@@ -1,4 +1,4 @@
-use std::ops::{Add,Sub,Neg};
+use std::ops::{Add,Sub,Mul,Neg};
 
 #[derive(Clone,Copy,Debug,PartialEq)]
 pub struct V4 (f32, f32, f32, f32);
@@ -37,10 +37,6 @@ impl V4 {
         V4(self.0/m, self.1/m, self.2/m, self.3/m)
     }
 
-    pub fn mult(&self, f: f32) -> V4 {
-        V4(f * self.0, f * self.1, f * self.2, f * self.3)
-    }
-
     pub fn dot(a: &V4, b: &V4) -> f32 {
         a.0*b.0 + a.1*b.1 + a.2*b.2 + a.3*b.3
     }
@@ -50,7 +46,7 @@ impl V4 {
     }
 
     pub fn reflect(a: V4, b: V4) -> V4 {
-        a - b.mult(2.0 * V4::dot(&a, &b))
+        a - b * (2.0 * V4::dot(&a, &b))
     }
 }
 
@@ -77,6 +73,14 @@ impl Sub for V4 {
             self.2 - other.2,
             self.3 - other.3
         )
+    }
+}
+
+impl Mul<f32> for V4 {
+    type Output = Self;
+
+    fn mul(self, f: f32) -> Self {
+        V4(f * self.0, f * self.1, f * self.2, f * self.3)
     }
 }
 

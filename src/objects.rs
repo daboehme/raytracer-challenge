@@ -4,25 +4,36 @@ use crate::render;
 
 pub trait SceneObject {
     fn intersect(&self, r: &ray::Ray) -> Vec<f32>;
+    fn material(&self) -> render::Material;
 }
 
 pub struct Sphere {
     origin: linalg::V4,
-    // material: render::Material,
+    material: render::Material,
     transform: linalg::M4
 }
 
 impl Sphere {
+    const DEFAULT_MAT: render::Material = render::Material {
+        color: render::Color { r: 1.0, g: 0.2, b: 1.0 },
+        ambient: 0.1,
+        diffuse: 0.9,
+        specular: 0.9,
+        shininess: 200.0
+    };
+
     pub fn new() -> Sphere {
-        Sphere { 
+        Sphere {
             origin: linalg::V4::make_point(0.0, 0.0, 0.0),
+            material: Sphere::DEFAULT_MAT,
             transform: linalg::M4::identity()
         }
     }
 
-    pub fn new_transformed(trans: &linalg::M4) -> Sphere {
+    pub fn new_custom(m: &render::Material, trans: &linalg::M4) -> Sphere {
         Sphere {
             origin: linalg::V4::make_point(0.0, 0.0, 0.0),
+            material: *m,
             transform: trans.invert()
         }
     }
@@ -60,6 +71,10 @@ impl SceneObject for Sphere {
 
         v
     }
+
+    fn material(&self) -> render::Material {
+        self.material
+    }
 }
 
 #[cfg(test)]
@@ -90,7 +105,7 @@ mod tests {
     #[test]
     fn sphere_normal() {
         let t = Transform::new().translate(0.0, 1.0, 0.0);
-        let s = Sphere::new_transformed(&t.matrix);
+        let s = Sphere::new_custom(&Sphere::DEFAULT_MAT, &t.matrix);
 
         let p = V4::make_point(0.0, 1.70711, -0.70711);
         let n = V4::make_vector(0.0, 0.70711, -0.70711);
