@@ -1,21 +1,22 @@
 use crate::linalg;
-use crate::ray;
-use crate::render;
+use linalg::{M4,V4};
+use crate::ray::Ray;
+use crate::render::{Color,Material};
 
 pub trait SceneObject {
-    fn intersect(&self, r: &ray::Ray) -> Vec<f32>;
-    fn material(&self) -> render::Material;
+    fn intersect(&self, r: &Ray) -> Vec<f32>;
+    fn material(&self) -> Material;
 }
 
 pub struct Sphere {
-    origin: linalg::V4,
-    material: render::Material,
-    transform: linalg::M4
+    origin: V4,
+    material: Material,
+    transform: M4
 }
 
 impl Sphere {
-    const DEFAULT_MAT: render::Material = render::Material {
-        color: render::Color { r: 1.0, g: 0.2, b: 1.0 },
+    const DEFAULT_MAT: Material = Material {
+        color: Color { r: 1.0, g: 0.2, b: 1.0 },
         ambient: 0.1,
         diffuse: 0.9,
         specular: 0.9,
@@ -24,39 +25,39 @@ impl Sphere {
 
     pub fn new() -> Sphere {
         Sphere {
-            origin: linalg::V4::make_point(0.0, 0.0, 0.0),
+            origin: V4::make_point(0.0, 0.0, 0.0),
             material: Sphere::DEFAULT_MAT,
-            transform: linalg::M4::identity()
+            transform: M4::identity()
         }
     }
 
-    pub fn new_custom(m: &render::Material, trans: &linalg::M4) -> Sphere {
+    pub fn new_custom(m: &Material, trans: &M4) -> Sphere {
         Sphere {
-            origin: linalg::V4::make_point(0.0, 0.0, 0.0),
+            origin: V4::make_point(0.0, 0.0, 0.0),
             material: *m,
             transform: trans.invert()
         }
     }
 
-    pub fn normal_at(&self, p: linalg::V4) -> linalg::V4 {
+    pub fn normal_at(&self, p: V4) -> V4 {
         let p = linalg::mvmul(&self.transform, &p);
         let t = self.transform.transpose();
         let n = p - self.origin;
         let n = linalg::mvmul(&t, &n);
 
-        linalg::V4::make_vector(n.x(), n.y(), n.z()).normalize()
+        V4::make_vector(n.x(), n.y(), n.z()).normalize()
     }
 }
 
 impl SceneObject for Sphere {
-    fn intersect(&self, r: &ray::Ray) -> Vec<f32> {
+    fn intersect(&self, r: &Ray) -> Vec<f32> {
         let r = r.apply(&self.transform);
 
         let s2r = r.origin - self.origin;
 
-        let a = linalg::V4::dot(&r.direction, &r.direction);
-        let b = 2.0 * linalg::V4::dot(&r.direction, &s2r);
-        let c = linalg::V4::dot(&s2r, &s2r) - 1.0;
+        let a = V4::dot(&r.direction, &r.direction);
+        let b = 2.0 * V4::dot(&r.direction, &s2r);
+        let c = V4::dot(&s2r, &s2r) - 1.0;
 
         let d = b*b - 4.0*a*c;
 
@@ -72,7 +73,7 @@ impl SceneObject for Sphere {
         v
     }
 
-    fn material(&self) -> render::Material {
+    fn material(&self) -> Material {
         self.material
     }
 }
@@ -80,8 +81,6 @@ impl SceneObject for Sphere {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use linalg::*;
-    use ray::Ray;
     use crate::transform::Transform;
     use float_cmp::*;
 

@@ -1,5 +1,5 @@
 use crate::canvas;
-use crate::linalg;
+use crate::linalg::V4;
 use crate::objects;
 use crate::ray;
 use crate::render;
@@ -7,7 +7,7 @@ use crate::render;
 use objects::SceneObject;
 
 pub fn draw_sphere() -> canvas::Canvas {
-    let origin = linalg::V4::make_point(0.0, 0.0, -5.0);
+    let origin = V4::make_point(0.0, 0.0, -5.0);
 
     let canvas_px = 100;
     let wall_size = 7.0;
@@ -24,7 +24,7 @@ pub fn draw_sphere() -> canvas::Canvas {
         for x in 0..canvas_px {
             let world_x = -0.5 * wall_size + px_size * (x as f32);
 
-            let pos = linalg::V4::make_point(world_x, world_y, world_z);
+            let pos = V4::make_point(world_x, world_y, world_z);
             let r = ray::Ray {
                 origin: origin, direction: (pos - origin).normalize()
             };
@@ -41,10 +41,10 @@ pub fn draw_sphere() -> canvas::Canvas {
 pub fn draw_sphere_lighting() -> canvas::Canvas {
     let light = render::LightSource {
         intensity: render::Color { r: 1.0, g: 1.0, b: 1.0 },
-        pos: linalg::V4::make_point(-10.0, 10.0, -10.0)
+        pos: V4::make_point(-10.0, 10.0, -10.0)
     };
 
-    let origin = linalg::V4::make_point(0.0, 0.0, -5.0);
+    let origin = V4::make_point(0.0, 0.0, -5.0);
 
     let canvas_px = 256;
     let wall_size = 7.0;
@@ -61,7 +61,7 @@ pub fn draw_sphere_lighting() -> canvas::Canvas {
         for x in 0..canvas_px {
             let world_x = -0.5 * wall_size + px_size * (x as f32);
 
-            let pos = linalg::V4::make_point(world_x, world_y, world_z);
+            let pos = V4::make_point(world_x, world_y, world_z);
             let ray = ray::Ray {
                 origin: origin, direction: (pos - origin).normalize()
             };

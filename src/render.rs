@@ -1,4 +1,4 @@
-use crate::linalg;
+use crate::linalg::V4;
 
 use std::convert::From;
 
@@ -19,15 +19,15 @@ impl Color {
     pub const RED:   Color = Color { r: 1.0, g: 0.0, b: 0.0 };
 }
 
-impl From<linalg::V4> for Color {
-    fn from(v: linalg::V4) -> Color {
+impl From<V4> for Color {
+    fn from(v: V4) -> Color {
         Color { r: v.x(), g: v.y(), b: v.z() }
     }
 }
 
-impl From<Color> for linalg::V4 {
-    fn from(c: Color) -> linalg::V4 {
-        linalg::V4::make_vector(c.r, c.g, c.b)
+impl From<Color> for V4 {
+    fn from(c: Color) -> V4 {
+        V4::make_vector(c.r, c.g, c.b)
     }
 }
 
@@ -43,39 +43,39 @@ pub struct Material {
 #[derive(Clone,Copy,Debug)]
 pub struct LightSource {
     pub intensity: Color,
-    pub pos: linalg::V4
+    pub pos: V4
 }
 
 pub fn lighting
     (
         material: &Material,
         light:    &LightSource,
-        point:    &linalg::V4,
-        eyev:     &linalg::V4,
-        normalv:  &linalg::V4
+        point:    &V4,
+        eyev:     &V4,
+        normalv:  &V4
     ) -> Color
 {
     let mc = material.color;
     let lc = light.intensity;
-    let colorv = linalg::V4::make_vector(mc.r*lc.r, mc.g*lc.g, mc.b*lc.b);
+    let colorv = V4::make_vector(mc.r*lc.r, mc.g*lc.g, mc.b*lc.b);
     let lightv = (light.pos - *point).normalize();
 
     let ambient = colorv * material.ambient;
 
-    let mut diffuse  = linalg::V4::from(Color::BLACK);
-    let mut specular = linalg::V4::from(Color::BLACK);
+    let mut diffuse  = V4::from(Color::BLACK);
+    let mut specular = V4::from(Color::BLACK);
 
-    let light_dot_normal = linalg::V4::dot(&lightv, normalv);
+    let light_dot_normal = V4::dot(&lightv, normalv);
 
     if light_dot_normal >= 0.0 {
         diffuse = colorv * material.diffuse * light_dot_normal;
 
-        let reflectv = linalg::V4::reflect(-lightv, *normalv);
-        let reflect_dot_eye = linalg::V4::dot(&reflectv, eyev);
+        let reflectv = V4::reflect(-lightv, *normalv);
+        let reflect_dot_eye = V4::dot(&reflectv, eyev);
 
         if reflect_dot_eye > 0.0 {
             let f = reflect_dot_eye.powf(material.shininess);
-            specular = linalg::V4::from(light.intensity) * (f * material.specular);
+            specular = V4::from(light.intensity) * (f * material.specular);
         }
     }
 
@@ -86,7 +86,6 @@ pub fn lighting
 #[cfg(test)]
 mod tests {
     use super::*;
-    use linalg::*;
     use float_cmp::*;
 
     const MATERIAL : Material = Material {
@@ -157,8 +156,8 @@ mod tests {
         };
         let pos = V4::make_point(0.0, 0.0, 0.0);
 
-        let val = linalg::V4::from(lighting(&MATERIAL, &light, &pos, &eyev, &normalv));
-        let exp = linalg::V4::make_vector(1.6364, 1.6364, 1.6364);
+        let val = V4::from(lighting(&MATERIAL, &light, &pos, &eyev, &normalv));
+        let exp = V4::make_vector(1.6364, 1.6364, 1.6364);
 
         assert!(approx_eq!(V4, val, exp, epsilon = 0.0001));
     }

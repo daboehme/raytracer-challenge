@@ -101,7 +101,7 @@ mod tests {
     use float_cmp::*;
 
     #[test]
-    pub fn translate() {
+    fn translate() {
         let trans = Transform::new().translate(5.0, -3.0, 2.0);
 
         let p = V4::make_point(-3.0, 4.0, 5.0);
@@ -112,7 +112,7 @@ mod tests {
     }
 
     #[test]
-    pub fn scale() {
+    fn scale() {
         let trans = Transform::new().scale(2.0, 3.0, 4.0);
 
         let p = V4::make_point(-4.0, 6.0, 8.0);
@@ -126,7 +126,7 @@ mod tests {
     }
 
     #[test]
-    pub fn reflect() {
+    fn reflect() {
         let trans = Transform::new().scale(-1.0, 1.0, 1.0);
         let p = V4::make_point(2.0, 3.0, 4.0);
 
@@ -134,7 +134,7 @@ mod tests {
     }
 
     #[test]
-    pub fn rotate_x() {
+    fn rotate_x() {
         let half_q = Transform::new().rotate_x(std::f32::consts::FRAC_PI_4);
         let full_q = Transform::new().rotate_x(std::f32::consts::FRAC_PI_2);
 
@@ -150,7 +150,7 @@ mod tests {
     }
 
     #[test]
-    pub fn rotate_y() {
+    fn rotate_y() {
         let half_q = Transform::new().rotate_y(std::f32::consts::FRAC_PI_4);
         let full_q = Transform::new().rotate_y(std::f32::consts::FRAC_PI_2);
 
@@ -166,7 +166,7 @@ mod tests {
     }
 
     #[test]
-    pub fn rotate_z() {
+    fn rotate_z() {
         let half_q = Transform::new().rotate_z(std::f32::consts::FRAC_PI_4);
         let full_q = Transform::new().rotate_z(std::f32::consts::FRAC_PI_2);
 
@@ -182,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    pub fn chain() {
+    fn chain() {
         let p = V4::make_point(1.0, 0.0, 1.0);
 
         let a = Transform::new().rotate_x(std::f32::consts::FRAC_PI_2);

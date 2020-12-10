@@ -1,20 +1,21 @@
 use crate::linalg;
+use crate::linalg::{V4,M4};
 
 #[derive(Clone,Copy,Debug,PartialEq)]
 pub struct Ray {
-    pub origin: linalg::V4,
-    pub direction: linalg::V4
+    pub origin: V4,
+    pub direction: V4
 }
 
 impl Ray {
-    pub fn apply(&self, m: &linalg::M4) -> Ray {
+    pub fn apply(&self, m: &M4) -> Ray {
         Ray {
             origin: linalg::mvmul(m, &self.origin),
             direction: linalg::mvmul(m, &self.direction)
         }
     }
 
-    pub fn position(&self, t: f32) -> linalg::V4 {
+    pub fn position(&self, t: f32) -> V4 {
         self.origin + self.direction * t
     }
 }
