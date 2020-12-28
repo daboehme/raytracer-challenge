@@ -1,8 +1,7 @@
+use crate::color::Color;
+
 use std::error::Error;
-
 use std::io::Write;
-
-use crate::render::Color;
 
 pub struct Canvas {
     pub width:  usize,

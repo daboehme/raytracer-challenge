@@ -1,10 +1,12 @@
 mod canvas;
+mod color;
 mod experiment;
+mod lighting;
 mod linalg;
 mod objects;
 mod ray;
-mod render;
 mod transform;
+mod world;
 
 use std::fs::File;
 

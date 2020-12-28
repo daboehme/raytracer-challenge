@@ -1,12 +1,13 @@
-use crate::canvas;
+use crate::canvas::Canvas;
+use crate::color::Color;
 use crate::linalg::V4;
+use crate::lighting;
 use crate::objects;
 use crate::ray;
-use crate::render;
 
-use objects::SceneObject;
+use objects::Object;
 
-pub fn draw_sphere() -> canvas::Canvas {
+pub fn draw_sphere() -> Canvas {
     let origin = V4::make_point(0.0, 0.0, -5.0);
 
     let canvas_px = 100;
@@ -14,7 +15,7 @@ pub fn draw_sphere() -> canvas::Canvas {
     let world_z = 10.0;
     let px_size = wall_size / (canvas_px as f32);
 
-    let mut canvas = canvas::Canvas::new(canvas_px, canvas_px, render::Color::BLACK);
+    let mut canvas = Canvas::new(canvas_px, canvas_px, Color::BLACK);
 
     let s = objects::Sphere::new();
 
@@ -30,7 +31,7 @@ pub fn draw_sphere() -> canvas::Canvas {
             };
 
             if !s.intersect(&r).is_empty() {
-                canvas.set(x, y, render::Color::RED);
+                canvas.set(x, y, Color::RED);
             }
         }
     }
@@ -38,9 +39,9 @@ pub fn draw_sphere() -> canvas::Canvas {
     canvas
 }
 
-pub fn draw_sphere_lighting() -> canvas::Canvas {
-    let light = render::LightSource {
-        intensity: render::Color { r: 1.0, g: 1.0, b: 1.0 },
+pub fn draw_sphere_lighting() -> Canvas {
+    let light = lighting::LightSource {
+        intensity: Color { r: 1.0, g: 1.0, b: 1.0 },
         pos: V4::make_point(-10.0, 10.0, -10.0)
     };
 
@@ -51,7 +52,7 @@ pub fn draw_sphere_lighting() -> canvas::Canvas {
     let world_z = 10.0;
     let px_size = wall_size / (canvas_px as f32);
 
-    let mut canvas = canvas::Canvas::new(canvas_px, canvas_px, render::Color::BLACK);
+    let mut canvas = Canvas::new(canvas_px, canvas_px, Color::BLACK);
 
     let s = objects::Sphere::new();
  
@@ -74,7 +75,7 @@ pub fn draw_sphere_lighting() -> canvas::Canvas {
                 let nrm = s.normal_at(p);
                 let eye = -ray.direction;
 
-                canvas.set(x, y, render::lighting(&m, &light, &p, &eye, &nrm));
+                canvas.set(x, y, Color::from(lighting::lighting(&m, &light, &p, &eye, &nrm)));
             }
         }
     }

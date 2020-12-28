@@ -1,11 +1,13 @@
+use crate::color::Color;
+use crate::lighting::Material;
 use crate::linalg;
 use linalg::{M4,V4};
 use crate::ray::Ray;
-use crate::render::{Color,Material};
 
-pub trait SceneObject {
+pub trait Object {
     fn intersect(&self, r: &Ray) -> Vec<f32>;
     fn material(&self) -> Material;
+    fn normal_at(&self, p: V4) -> V4;
 }
 
 pub struct Sphere {
@@ -38,18 +40,9 @@ impl Sphere {
             transform: trans.invert()
         }
     }
-
-    pub fn normal_at(&self, p: V4) -> V4 {
-        let p = linalg::mvmul(&self.transform, &p);
-        let t = self.transform.transpose();
-        let n = p - self.origin;
-        let n = linalg::mvmul(&t, &n);
-
-        V4::make_vector(n.x(), n.y(), n.z()).normalize()
-    }
 }
 
-impl SceneObject for Sphere {
+impl Object for Sphere {
     fn intersect(&self, r: &Ray) -> Vec<f32> {
         let r = r.apply(&self.transform);
 
@@ -75,6 +68,15 @@ impl SceneObject for Sphere {
 
     fn material(&self) -> Material {
         self.material
+    }
+
+    fn normal_at(&self, p: V4) -> V4 {
+        let p = linalg::mvmul(&self.transform, &p);
+        let t = self.transform.transpose();
+        let n = p - self.origin;
+        let n = linalg::mvmul(&t, &n);
+
+        V4::make_vector(n.x(), n.y(), n.z()).normalize()
     }
 }
 

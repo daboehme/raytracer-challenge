@@ -1,4 +1,4 @@
-use std::ops::{Add,Sub,Mul,Neg};
+use std::ops::{Add,AddAssign,Sub,Mul,Neg};
 
 #[derive(Clone,Copy,Debug,PartialEq)]
 pub struct V4 (f32, f32, f32, f32);
@@ -59,6 +59,17 @@ impl Add for V4 {
             self.1 + other.1,
             self.2 + other.2,
             self.3 + other.3
+        )
+    }
+}
+
+impl AddAssign for V4 {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = V4(
+            self.0 + rhs.0,
+            self.1 + rhs.1,
+            self.2 + rhs.2,
+            self.3 + rhs.3
         )
     }
 }
