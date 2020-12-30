@@ -79,7 +79,7 @@ pub fn draw_sphere_lighting() -> Canvas {
                 let nrm = s.normal_at(p);
                 let eye = -ray.direction;
 
-                canvas.set(x, y, Color::from(lighting::lighting(&m, &light, &p, &eye, &nrm)));
+                canvas.set(x, y, Color::from(lighting::lighting(&m, &light, &p, &eye, &nrm, false)));
             }
         }
     }

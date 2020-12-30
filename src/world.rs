@@ -36,6 +36,21 @@ impl World {
         result
     }
 
+    fn is_shadowed(&self, light: &LightSource, point: &V4) -> bool {
+        let v = light.pos - *point;
+        let r = Ray {
+            origin: *point,
+            direction: v.normalize()
+        };
+
+        let xs = self.intersections(&r);
+
+        match xs.iter().find(|&x| x.0 >= 0.0) {
+            Some((dst, _)) => *dst < v.magnitude(),
+            None => false
+        }
+    }
+
     fn shade(&self, ray: &Ray, hit: f32, obj: Rc<dyn Object>) -> Color {
         let point = ray.position(hit);
         let eyev  = -ray.direction;
@@ -46,10 +61,20 @@ impl World {
             normalv = -normalv
         }
 
+        let over_point = point + normalv * 0.001;
+
         let mut colorv = V4::from(Color::BLACK);
 
         for light in self.lights.iter() {
-            colorv += lighting::lighting(&mat, light, &point, &eyev, &normalv)
+            colorv +=
+                lighting::lighting(
+                    &mat,
+                    light,
+                    &point,
+                    &eyev,
+                    &normalv,
+                    self.is_shadowed(light, &over_point)
+                );
         }
 
         Color::from(colorv)
@@ -211,5 +236,19 @@ mod tests {
         assert!(approx_eq!(f32, v.r, 0.38066, epsilon = 0.0001));
         assert!(approx_eq!(f32, v.g, 0.47583, epsilon = 0.0001));
         assert!(approx_eq!(f32, v.b, 0.2855, epsilon = 0.0001));
+    }
+
+    #[test]
+    fn shadow() {
+        let w = make_world();
+        let p = V4::make_point(0.0, 10.0, 0.0);
+
+        assert!(!w.is_shadowed(&w.lights.first().unwrap(), &p));
+
+        let p = V4::make_point(10.0, -10.0, 10.0);
+        assert!(w.is_shadowed(&w.lights.first().unwrap(), &p));
+
+        let p = V4::make_point(-2.0, 2.0, -2.0);
+        assert!(!w.is_shadowed(&w.lights.first().unwrap(), &p));
     }
 }

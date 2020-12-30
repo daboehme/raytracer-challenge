@@ -18,34 +18,37 @@ pub struct LightSource {
 
 pub fn lighting
     (
-        material: &Material,
-        light:    &LightSource,
-        point:    &V4,
-        eyev:     &V4,
-        normalv:  &V4
+        material:  &Material,
+        light:     &LightSource,
+        point:     &V4,
+        eyev:      &V4,
+        normalv:   &V4,
+        in_shadow: bool
     ) -> V4
 {
     let mc = material.color;
     let lc = light.intensity;
     let colorv = V4::make_vector(mc.r*lc.r, mc.g*lc.g, mc.b*lc.b);
-    let lightv = (light.pos - *point).normalize();
 
     let ambient = colorv * material.ambient;
 
     let mut diffuse  = V4::from(Color::BLACK);
     let mut specular = V4::from(Color::BLACK);
 
-    let light_dot_normal = V4::dot(&lightv, normalv);
-
-    if light_dot_normal >= 0.0 {
-        diffuse = colorv * material.diffuse * light_dot_normal;
-
-        let reflectv = V4::reflect(-lightv, *normalv);
-        let reflect_dot_eye = V4::dot(&reflectv, eyev);
-
-        if reflect_dot_eye > 0.0 {
-            let f = reflect_dot_eye.powf(material.shininess);
-            specular = V4::from(light.intensity) * (f * material.specular);
+    if !in_shadow {
+        let lightv = (light.pos - *point).normalize();
+        let light_dot_normal = V4::dot(&lightv, normalv);
+    
+        if light_dot_normal >= 0.0 {
+            diffuse = colorv * material.diffuse * light_dot_normal;
+    
+            let reflectv = V4::reflect(-lightv, *normalv);
+            let reflect_dot_eye = V4::dot(&reflectv, eyev);
+    
+            if reflect_dot_eye > 0.0 {
+                let f = reflect_dot_eye.powf(material.shininess);
+                specular = V4::from(light.intensity) * (f * material.specular);
+            }
         }
     }
 
@@ -76,7 +79,7 @@ mod tests {
         };
         let pos = V4::make_point(0.0, 0.0, 0.0);
 
-        let val = lighting(&MATERIAL, &light, &pos, &eyev, &normalv);
+        let val = lighting(&MATERIAL, &light, &pos, &eyev, &normalv, false);
         let val = V4::from(val);
 
         assert!(approx_eq!(V4, val, V4::make_vector(1.9, 1.9, 1.9), epsilon = 0.0001));
@@ -93,7 +96,7 @@ mod tests {
         };
         let pos = V4::make_point(0.0, 0.0, 0.0);
 
-        let val = lighting(&MATERIAL, &light, &pos, &eyev, &normalv);
+        let val = lighting(&MATERIAL, &light, &pos, &eyev, &normalv, false);
         let val = V4::from(val);
 
         assert!(approx_eq!(V4, val, V4::make_vector(1.0, 1.0, 1.0), epsilon = 0.0001));
@@ -109,7 +112,7 @@ mod tests {
         };
         let pos = V4::make_point(0.0, 0.0, 0.0);
 
-        let val = V4::from(lighting(&MATERIAL, &light, &pos, &eyev, &normalv));
+        let val = V4::from(lighting(&MATERIAL, &light, &pos, &eyev, &normalv, false));
         let exp = V4::make_vector(0.7364, 0.7364, 0.7364);
 
         assert!(approx_eq!(V4, val, exp, epsilon = 0.0001));
@@ -126,9 +129,24 @@ mod tests {
         };
         let pos = V4::make_point(0.0, 0.0, 0.0);
 
-        let val = V4::from(lighting(&MATERIAL, &light, &pos, &eyev, &normalv));
+        let val = V4::from(lighting(&MATERIAL, &light, &pos, &eyev, &normalv, false));
         let exp = V4::make_vector(1.6364, 1.6364, 1.6364);
 
         assert!(approx_eq!(V4, val, exp, epsilon = 0.0001));
+    }
+
+    #[test]
+    fn in_shadow() {
+        let eyev = V4::make_vector(0.0, 0.0, -1.0);
+        let normalv = V4::make_vector(0.0, 0.0, -1.0);
+        let light = LightSource {
+            intensity: Color::WHITE,
+            pos: V4::make_point(0.0, 0.0, 10.0)
+        };
+        let pos = V4::make_point(0.0, 0.0, 0.0);
+
+        let val = lighting(&MATERIAL, &light, &pos, &eyev, &normalv, true);
+
+        assert_eq!(val, V4::make_vector(0.1, 0.1, 0.1));
     }
 }
