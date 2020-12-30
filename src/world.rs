@@ -63,6 +63,14 @@ impl World {
             None => Color::BLACK
         }
     }
+
+    pub fn add_object(&mut self, obj: Rc<dyn Object>) {
+        self.objects.push(obj);
+    }
+
+    pub fn add_light(&mut self, light: &LightSource) {
+        self.lights.push(*light);
+    }
 }
 
 

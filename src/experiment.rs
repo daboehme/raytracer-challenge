@@ -1,11 +1,15 @@
+use crate::camera::Camera;
 use crate::canvas::Canvas;
 use crate::color::Color;
 use crate::linalg::V4;
 use crate::lighting;
-use crate::objects;
+use crate::lighting::{Material,LightSource};
+use crate::objects::{Object,Sphere};
 use crate::ray;
+use crate::transform::Transform;
+use crate::world::World;
 
-use objects::Object;
+use std::rc::Rc;
 
 pub fn draw_sphere() -> Canvas {
     let origin = V4::make_point(0.0, 0.0, -5.0);
@@ -17,7 +21,7 @@ pub fn draw_sphere() -> Canvas {
 
     let mut canvas = Canvas::new(canvas_px, canvas_px, Color::BLACK);
 
-    let s = objects::Sphere::new();
+    let s = Sphere::new();
 
     for y in 0..canvas_px {
         let world_y = 0.5 * wall_size - px_size * (y as f32);
@@ -40,7 +44,7 @@ pub fn draw_sphere() -> Canvas {
 }
 
 pub fn draw_sphere_lighting() -> Canvas {
-    let light = lighting::LightSource {
+    let light = LightSource {
         intensity: Color { r: 1.0, g: 1.0, b: 1.0 },
         pos: V4::make_point(-10.0, 10.0, -10.0)
     };
@@ -54,8 +58,8 @@ pub fn draw_sphere_lighting() -> Canvas {
 
     let mut canvas = Canvas::new(canvas_px, canvas_px, Color::BLACK);
 
-    let s = objects::Sphere::new();
- 
+    let s = Sphere::new();
+
     for y in 0..canvas_px {
         let world_y = 0.5 * wall_size - px_size * (y as f32);
 
@@ -81,4 +85,45 @@ pub fn draw_sphere_lighting() -> Canvas {
     }
 
     canvas
+}
+
+pub fn draw_world() -> Canvas {
+    let mut world = World::new();
+
+    world.add_light( &LightSource {
+            pos: V4::make_point(-10.0, 10.0, -10.0),
+            intensity: Color::WHITE
+        } );
+
+    let m = Material {
+        color: Color::new(0.1, 1.0, 0.5),
+        ambient: 0.1,
+        diffuse: 0.7,
+        specular: 0.3,
+        shininess: 200.0
+    };
+
+    let t = Transform::new().translate(-0.5, 1.0, 0.5);
+
+    world.add_object(Rc::new(Sphere::new_custom(&m, &t.matrix)));
+
+    let t = Transform::new()
+        .translate(1.5, 0.5, -0.5)
+        .scale(0.5, 0.5, 0.5);
+
+    world.add_object(Rc::new(Sphere::new_custom(&m, &t.matrix)));
+
+    let t = Transform::new()
+        .translate(-1.5, 0.33, -0.75)
+        .scale(0.33, 0.33, 0.33);
+
+    world.add_object(Rc::new(Sphere::new_custom(&m, &t.matrix)));
+
+    let from = V4::make_point(0.0, 1.5, -5.0);
+    let to = V4::make_point(0.0, 1.0, 0.0);
+    let up = V4::make_vector(0.0, 1.0, 0.0);
+
+    let vt = Transform::view_transform(&from, &to, &up);
+
+    Camera::new(480, 320, std::f32::consts::FRAC_PI_3, &vt.matrix).render(&world)
 }

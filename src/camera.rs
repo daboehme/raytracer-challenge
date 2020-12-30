@@ -65,8 +65,8 @@ impl Camera {
     pub fn render(&self, world: &World) -> Canvas {
         let mut canvas = Canvas::new(self.width, self.height, Color::BLACK);
 
-        for y in 0..self.width {
-            for x in 0..self.height {
+        for y in 0..self.height {
+            for x in 0..self.width {
                 let ray = self.ray(x, y);
                 canvas.set(x, y, world.color_at(&ray));
             }
