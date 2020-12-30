@@ -3,7 +3,6 @@ use crate::color::Color;
 use crate::linalg;
 use crate::linalg::{V4,M4};
 use crate::ray::Ray;
-use crate::transform::Transform;
 use crate::world::World;
 
 pub struct Camera {

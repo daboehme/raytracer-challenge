@@ -1,15 +1,15 @@
 use crate::color::Color;
-use crate::objects::Object;
-use crate::ray::Ray;
 use crate::lighting::LightSource;
 use crate::lighting;
 use crate::linalg::V4;
+use crate::ray::Ray;
+use crate::shape::Shape;
 
 use std::rc::Rc;
 
 pub struct World {
     lights: Vec<LightSource>,
-    objects: Vec<Rc<dyn Object>>
+    objects: Vec<Rc<dyn Shape>>
 }
 
 impl World {
@@ -20,7 +20,7 @@ impl World {
         }
     }
 
-    fn intersections(&self, ray: &Ray) -> Vec< (f32, Rc<dyn Object>) > {
+    fn intersections(&self, ray: &Ray) -> Vec< (f32, Rc<dyn Shape>) > {
         let mut result = Vec::new();
 
         for object in self.objects.iter() {
@@ -51,7 +51,7 @@ impl World {
         }
     }
 
-    fn shade(&self, ray: &Ray, hit: f32, obj: Rc<dyn Object>) -> Color {
+    fn shade(&self, ray: &Ray, hit: f32, obj: Rc<dyn Shape>) -> Color {
         let point = ray.position(hit);
         let eyev  = -ray.direction;
         let mat   = obj.material();
@@ -89,7 +89,7 @@ impl World {
         }
     }
 
-    pub fn add_object(&mut self, obj: Rc<dyn Object>) {
+    pub fn add_object(&mut self, obj: Rc<dyn Shape>) {
         self.objects.push(obj);
     }
 
@@ -102,9 +102,8 @@ impl World {
 #[cfg(test)]
 mod tests {
     use crate::camera::Camera;
-    use crate::canvas::Canvas;
     use crate::linalg::V4;
-    use crate::objects::Sphere;
+    use crate::sphere::Sphere;
     use crate::lighting::*;
     use crate::transform::Transform;
 
@@ -128,7 +127,7 @@ mod tests {
             shininess: 200.0
         };
 
-        w.objects.push(Rc::new(Sphere::new_custom(&m, &t.matrix)));
+        w.objects.push(Rc::new(Sphere::new(&m, &t.matrix)));
 
         let t = Transform::new().scale(0.5, 0.5, 0.5);
         let m = Material {
@@ -139,7 +138,7 @@ mod tests {
             shininess: 200.0
         };
 
-        w.objects.push(Rc::new(Sphere::new_custom(&m, &t.matrix)));
+        w.objects.push(Rc::new(Sphere::new(&m, &t.matrix)));
 
         w
     }

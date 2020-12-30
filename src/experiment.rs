@@ -1,15 +1,24 @@
 use crate::camera::Camera;
 use crate::canvas::Canvas;
 use crate::color::Color;
-use crate::linalg::V4;
+use crate::linalg::{M4,V4};
 use crate::lighting;
 use crate::lighting::{Material,LightSource};
-use crate::objects::{Object,Sphere};
+use crate::shape::Shape;
+use crate::sphere::Sphere;
 use crate::ray;
 use crate::transform::Transform;
 use crate::world::World;
 
 use std::rc::Rc;
+
+const DEFAULT_MATERIAL: Material = Material {
+    color: Color { r: 1.0, g: 0.2, b: 1.0 },
+    ambient: 0.1,
+    diffuse: 0.7,
+    specular: 0.2,
+    shininess: 200.0
+};
 
 pub fn draw_sphere() -> Canvas {
     let origin = V4::make_point(0.0, 0.0, -5.0);
@@ -21,7 +30,7 @@ pub fn draw_sphere() -> Canvas {
 
     let mut canvas = Canvas::new(canvas_px, canvas_px, Color::BLACK);
 
-    let s = Sphere::new();
+    let s = Sphere::new(&DEFAULT_MATERIAL, &M4::identity());
 
     for y in 0..canvas_px {
         let world_y = 0.5 * wall_size - px_size * (y as f32);
@@ -58,7 +67,7 @@ pub fn draw_sphere_lighting() -> Canvas {
 
     let mut canvas = Canvas::new(canvas_px, canvas_px, Color::BLACK);
 
-    let s = Sphere::new();
+    let s = Sphere::new(&DEFAULT_MATERIAL, &M4::identity());
 
     for y in 0..canvas_px {
         let world_y = 0.5 * wall_size - px_size * (y as f32);
@@ -105,19 +114,19 @@ pub fn draw_world() -> Canvas {
 
     let t = Transform::new().translate(-0.5, 1.0, 0.5);
 
-    world.add_object(Rc::new(Sphere::new_custom(&m, &t.matrix)));
+    world.add_object(Rc::new(Sphere::new(&m, &t.matrix)));
 
     let t = Transform::new()
         .translate(1.5, 0.5, -0.5)
         .scale(0.5, 0.5, 0.5);
 
-    world.add_object(Rc::new(Sphere::new_custom(&m, &t.matrix)));
+    world.add_object(Rc::new(Sphere::new(&m, &t.matrix)));
 
     let t = Transform::new()
         .translate(-1.5, 0.33, -0.75)
         .scale(0.33, 0.33, 0.33);
 
-    world.add_object(Rc::new(Sphere::new_custom(&m, &t.matrix)));
+    world.add_object(Rc::new(Sphere::new(&m, &t.matrix)));
 
     let from = V4::make_point(0.0, 1.5, -5.0);
     let to = V4::make_point(0.0, 1.0, 0.0);
