@@ -1,4 +1,5 @@
 use crate::linalg;
+use crate::linalg::{M4,V4};
 
 #[derive(Clone,Copy,Debug)]
 pub struct Transform {
@@ -8,7 +9,34 @@ pub struct Transform {
 impl Transform {
     pub fn new() -> Transform {
         Transform {
-            matrix: linalg::M4::identity()
+            matrix: M4::identity()
+        }
+    }
+
+    pub fn view_transform(from: &V4, to: &V4, up: &V4) -> Transform {
+        let forward = (*to - *from).normalize();
+        let upn = up.normalize();
+        let left = V4::cross(&forward, &upn);
+        let upt = V4::cross(&left, &forward);
+
+        let orientation = [
+             left.x(),     left.y(),     left.z(),    0.0,
+             upt.x(),      upt.y(),      upt.z(),     0.0,
+            -forward.x(), -forward.y(), -forward.z(), 0.0,
+             0.0,          0.0,          0.0,         1.0
+        ];
+        let orientation = M4::from_array(&orientation);
+
+        let translation = [
+            1.0, 0.0, 0.0, -from.x(),
+            0.0, 1.0, 0.0, -from.y(),
+            0.0, 0.0, 1.0, -from.z(),
+            0.0, 0.0, 0.0,  1.0
+        ];
+        let translation = M4::from_array(&translation);
+
+        Transform {
+            matrix: linalg::mmul(&orientation, &translation)
         }
     }
 
@@ -19,7 +47,7 @@ impl Transform {
             0.0, 0.0, 1.0, z,
             0.0, 0.0, 0.0, 1.0
         ];
-        let transmatrix = linalg::M4::from_array(&transmatrix);
+        let transmatrix = M4::from_array(&transmatrix);
 
         Transform {
             matrix: linalg::mmul(&self.matrix, &transmatrix)
@@ -33,7 +61,7 @@ impl Transform {
             0.0, 0.0, z,   0.0,
             0.0, 0.0, 0.0, 1.0
         ];
-        let transmatrix = linalg::M4::from_array(&transmatrix);
+        let transmatrix = M4::from_array(&transmatrix);
 
         Transform {
             matrix: linalg::mmul(&self.matrix, &transmatrix)
@@ -47,7 +75,7 @@ impl Transform {
             0.0, rad.sin(),  rad.cos(), 0.0,
             0.0, 0.0,        0.0,       1.0
         ];
-        let transmatrix = linalg::M4::from_array(&transmatrix);
+        let transmatrix = M4::from_array(&transmatrix);
 
         Transform {
             matrix: linalg::mmul(&self.matrix, &transmatrix)
@@ -61,7 +89,7 @@ impl Transform {
             -rad.sin(), 0.0, rad.cos(), 0.0,
              0.0,       0.0, 0.0,       1.0
         ];
-        let transmatrix = linalg::M4::from_array(&transmatrix);
+        let transmatrix = M4::from_array(&transmatrix);
 
         Transform {
             matrix: linalg::mmul(&self.matrix, &transmatrix)
@@ -75,7 +103,7 @@ impl Transform {
             0.0,        0.0,       1.0, 0.0,
             0.0,        0.0,       0.0, 1.0
         ];
-        let transmatrix = linalg::M4::from_array(&transmatrix);
+        let transmatrix = M4::from_array(&transmatrix);
 
         Transform {
             matrix: linalg::mmul(&self.matrix, &transmatrix)
@@ -88,7 +116,7 @@ impl Transform {
         }
     }
 
-    pub fn apply(&self, v: &linalg::V4) -> linalg::V4 {
+    pub fn apply(&self, v: &V4) -> V4 {
         linalg::mvmul(&self.matrix, v)
     }
 }
@@ -206,4 +234,59 @@ mod tests {
 
         assert!(approx_eq!(V4, q, r));
     }
+
+    #[test]
+    fn view_transform_default() {
+        let from = V4::make_point(0.0, 0.0, 0.0);
+        let to = V4::make_point(0.0, 0.0, -1.0);
+        let up = V4::make_vector(0.0, 1.0, 0.0);
+
+        let t = Transform::view_transform(&from, &to, &up);
+        let i = M4::identity();
+
+        assert!(approx_eq!(&M4, &t.matrix, &i));
+    }
+
+    #[test]
+    fn view_transform_scale() {
+        let from = V4::make_point(0.0, 0.0, 0.0);
+        let to = V4::make_point(0.0, 0.0, 1.0);
+        let up = V4::make_vector(0.0, 1.0, 0.0);
+
+        let tv = Transform::view_transform(&from, &to, &up);
+        let ts = Transform::new().scale(-1.0, 1.0, -1.0);
+
+        assert!(approx_eq!(&M4, &tv.matrix, &ts.matrix));
+    }
+
+    #[test]
+    fn view_transform_move() {
+        let from = V4::make_point(0.0, 0.0, 8.0);
+        let to = V4::make_point(0.0, 0.0, 0.0);
+        let up = V4::make_vector(0.0, 1.0, 0.0);
+
+        let tv = Transform::view_transform(&from, &to, &up);
+        let tt = Transform::new().translate(0.0, 0.0, -8.0);
+
+        assert!(approx_eq!(&M4, &tv.matrix, &tt.matrix));
+    }
+
+    #[test]
+    fn view_transform_misc() {
+        let from = V4::make_point(1.0, 3.0, 2.0);
+        let to = V4::make_point(4.0, -2.0, 8.0);
+        let up = V4::make_vector(1.0, 1.0, 0.0);
+
+        let tv = Transform::view_transform(&from, &to, &up);
+        let m = [
+            -0.50709, 0.50709,  0.67612, -2.36653,
+             0.76772, 0.60609,  0.12122, -2.82843,
+            -0.35857, 0.59761, -0.71714,  0.00000,
+             0.00000, 0.00000,  0.00000,  1.00000
+        ];
+        let m = M4::from_array(&m);
+
+        assert!(approx_eq!(&M4, &tv.matrix, &m, epsilon=0.0001));
+    }
+
 }

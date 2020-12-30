@@ -68,6 +68,8 @@ impl World {
 
 #[cfg(test)]
 mod tests {
+    use crate::camera::Camera;
+    use crate::canvas::Canvas;
     use crate::linalg::V4;
     use crate::objects::Sphere;
     use crate::lighting::*;
@@ -83,7 +85,7 @@ mod tests {
                 intensity: Color::WHITE,
                 pos: V4::make_point(-10.0, 10.0, -10.0)
             } );
-        
+
         let t = Transform::new();
         let m = Material {
             color: Color::new(0.8, 1.0, 0.6),
@@ -101,7 +103,7 @@ mod tests {
             ambient: 0.1,
             diffuse: 0.9,
             specular: 0.9,
-            shininess: 200.0    
+            shininess: 200.0
         };
 
         w.objects.push(Rc::new(Sphere::new_custom(&m, &t.matrix)));
@@ -112,8 +114,8 @@ mod tests {
     #[test]
     fn intersections() {
         let w = make_world();
-        let r = Ray { 
-            origin: V4::make_point(0.0, 0.0, -5.0), 
+        let r = Ray {
+            origin: V4::make_point(0.0, 0.0, -5.0),
             direction: V4::make_vector(0.0, 0.0, 1.0)
         };
 
@@ -136,7 +138,7 @@ mod tests {
         };
 
         let c = w.shade(&r, 4.0, Rc::clone(&w.objects[0]));
- 
+
         assert!(approx_eq!(f32, c.r, 0.38066, epsilon = 0.0001));
         assert!(approx_eq!(f32, c.g, 0.47583, epsilon = 0.0001));
         assert!(approx_eq!(f32, c.b, 0.2855,  epsilon = 0.0001));
@@ -183,5 +185,23 @@ mod tests {
         let c = w.color_at(&r);
 
         assert!(approx_eq!(V4, V4::from(c), V4::make_vector(0.38066, 0.47583, 0.2855), epsilon = 0.0001));
+    }
+
+    #[test]
+    fn render() {
+        let w = make_world();
+
+        let from = V4::make_point(0.0, 0.0, -5.0);
+        let to = V4::make_point(0.0, 0.0, 0.0);
+        let up = V4::make_vector(0.0, 1.0, 0.0);
+
+        let t = Transform::view_transform(&from, &to, &up);
+        let c = Camera::new(11, 11, std::f32::consts::FRAC_PI_2, &t.matrix);
+
+        let v = c.render(&w).at(5, 5);
+
+        assert!(approx_eq!(f32, v.r, 0.38066, epsilon = 0.0001));
+        assert!(approx_eq!(f32, v.g, 0.47583, epsilon = 0.0001));
+        assert!(approx_eq!(f32, v.b, 0.2855, epsilon = 0.0001));
     }
 }

@@ -18,6 +18,10 @@ impl Canvas {
         }
     }
 
+    pub fn at(&self, x: usize, y: usize) -> Color {
+        self.data[y*self.width+x]
+    }
+
     pub fn set(&mut self, x: usize, y: usize, color: Color) {
         self.data[y*self.width + x] = color
     }
