@@ -38,13 +38,13 @@ pub fn lighting
     if !in_shadow {
         let lightv = (light.pos - *point).normalize();
         let light_dot_normal = V4::dot(&lightv, normalv);
-    
+
         if light_dot_normal >= 0.0 {
             diffuse = colorv * material.diffuse * light_dot_normal;
-    
+
             let reflectv = V4::reflect(-lightv, *normalv);
             let reflect_dot_eye = V4::dot(&reflectv, eyev);
-    
+
             if reflect_dot_eye > 0.0 {
                 let f = reflect_dot_eye.powf(material.shininess);
                 specular = V4::from(light.intensity) * (f * material.specular);

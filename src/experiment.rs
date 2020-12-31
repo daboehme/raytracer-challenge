@@ -30,7 +30,7 @@ pub fn draw_sphere() -> Canvas {
 
     let mut canvas = Canvas::new(canvas_px, canvas_px, Color::BLACK);
 
-    let s = Sphere::new(&DEFAULT_MATERIAL, &M4::identity());
+    let s = Shape::new(Box::new(Sphere()), &DEFAULT_MATERIAL, &M4::identity());
 
     for y in 0..canvas_px {
         let world_y = 0.5 * wall_size - px_size * (y as f32);
@@ -67,7 +67,7 @@ pub fn draw_sphere_lighting() -> Canvas {
 
     let mut canvas = Canvas::new(canvas_px, canvas_px, Color::BLACK);
 
-    let s = Sphere::new(&DEFAULT_MATERIAL, &M4::identity());
+    let s = Shape::new(Box::new(Sphere()), &DEFAULT_MATERIAL, &M4::identity());
 
     for y in 0..canvas_px {
         let world_y = 0.5 * wall_size - px_size * (y as f32);
@@ -114,19 +114,19 @@ pub fn draw_world() -> Canvas {
 
     let t = Transform::new().translate(-0.5, 1.0, 0.5);
 
-    world.add_object(Rc::new(Sphere::new(&m, &t.matrix)));
+    world.add_object(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
 
     let t = Transform::new()
         .translate(1.5, 0.5, -0.5)
         .scale(0.5, 0.5, 0.5);
 
-    world.add_object(Rc::new(Sphere::new(&m, &t.matrix)));
+    world.add_object(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
 
     let t = Transform::new()
         .translate(-1.5, 0.33, -0.75)
         .scale(0.33, 0.33, 0.33);
 
-    world.add_object(Rc::new(Sphere::new(&m, &t.matrix)));
+    world.add_object(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
 
     let from = V4::make_point(0.0, 1.5, -5.0);
     let to = V4::make_point(0.0, 1.0, 0.0);

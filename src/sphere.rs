@@ -1,27 +1,11 @@
-use crate::lighting::Material;
-use crate::linalg;
-use crate::linalg::{M4,V4};
+use crate::linalg::V4;
 use crate::ray::Ray;
-use crate::shape::Shape;
+use crate::shape::BaseShape;
 
-pub struct Sphere {
-    material: Material,
-    transform: M4
-}
+pub struct Sphere ();
 
-impl Sphere {
-    pub fn new(m: &Material, trans: &M4) -> Sphere {
-        Sphere {
-            material: *m,
-            transform: trans.invert()
-        }
-    }
-}
-
-impl Shape for Sphere {
+impl BaseShape for Sphere {
     fn intersect(&self, r: &Ray) -> Vec<f32> {
-        let r = r.apply(&self.transform);
-
         let s2r = r.origin - V4::make_point(0.0, 0.0, 0.0);
 
         let a = V4::dot(&r.direction, &r.direction);
@@ -42,17 +26,8 @@ impl Shape for Sphere {
         v
     }
 
-    fn material(&self) -> Material {
-        self.material
-    }
-
     fn normal_at(&self, p: V4) -> V4 {
-        let p = linalg::mvmul(&self.transform, &p);
-        let t = self.transform.transpose();
-        let n = p - V4::make_point(0.0, 0.0, 0.0);
-        let n = linalg::mvmul(&t, &n);
-
-        V4::make_vector(n.x(), n.y(), n.z()).normalize()
+        p - V4::make_point(0.0, 0.0, 0.0).normalize()
     }
 }
 
@@ -60,7 +35,10 @@ impl Shape for Sphere {
 mod tests {
     use super::*;
     use crate::color::Color;
+    use crate::lighting::Material;
+    use crate::linalg::{M4,V4};
     use crate::transform::Transform;
+    use crate::shape::Shape;
     use float_cmp::*;
 
     const DEFAULT_MAT: Material = Material {
@@ -71,13 +49,10 @@ mod tests {
         shininess: 200.0
     };
 
-    fn default_sphere() -> Sphere {
-        Sphere {
-            material: DEFAULT_MAT,
-            transform: M4::identity()
-        }
+    fn default_sphere() -> Shape {
+        Shape::new(Box::new(Sphere()), &DEFAULT_MAT, &M4::identity())
     }
-    
+
     #[test]
     fn sphere_intersect() {
         let z = V4::make_vector(0.0, 0.0, 1.0);
@@ -98,7 +73,7 @@ mod tests {
     #[test]
     fn sphere_normal() {
         let t = Transform::new().translate(0.0, 1.0, 0.0);
-        let s = Sphere::new(&DEFAULT_MAT, &t.matrix);
+        let s = Shape::new(Box::new(Sphere()), &DEFAULT_MAT, &t.matrix);
 
         let p = V4::make_point(0.0, 1.70711, -0.70711);
         let n = V4::make_vector(0.0, 0.70711, -0.70711);

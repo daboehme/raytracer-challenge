@@ -9,7 +9,7 @@ use std::rc::Rc;
 
 pub struct World {
     lights: Vec<LightSource>,
-    objects: Vec<Rc<dyn Shape>>
+    objects: Vec< Rc<Shape> >
 }
 
 impl World {
@@ -20,7 +20,7 @@ impl World {
         }
     }
 
-    fn intersections(&self, ray: &Ray) -> Vec< (f32, Rc<dyn Shape>) > {
+    fn intersections(&self, ray: &Ray) -> Vec< (f32, Rc<Shape>) > {
         let mut result = Vec::new();
 
         for object in self.objects.iter() {
@@ -51,7 +51,7 @@ impl World {
         }
     }
 
-    fn shade(&self, ray: &Ray, hit: f32, obj: Rc<dyn Shape>) -> Color {
+    fn shade(&self, ray: &Ray, hit: f32, obj: Rc<Shape>) -> Color {
         let point = ray.position(hit);
         let eyev  = -ray.direction;
         let mat   = obj.material();
@@ -89,8 +89,8 @@ impl World {
         }
     }
 
-    pub fn add_object(&mut self, obj: Rc<dyn Shape>) {
-        self.objects.push(obj);
+    pub fn add_object(&mut self, obj: Rc<Shape>) {
+        self.objects.push(Rc::clone(&obj));
     }
 
     pub fn add_light(&mut self, light: &LightSource) {
@@ -127,7 +127,7 @@ mod tests {
             shininess: 200.0
         };
 
-        w.objects.push(Rc::new(Sphere::new(&m, &t.matrix)));
+        w.objects.push(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
 
         let t = Transform::new().scale(0.5, 0.5, 0.5);
         let m = Material {
@@ -138,7 +138,7 @@ mod tests {
             shininess: 200.0
         };
 
-        w.objects.push(Rc::new(Sphere::new(&m, &t.matrix)));
+        w.objects.push(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
 
         w
     }
@@ -185,8 +185,6 @@ mod tests {
             origin: V4::make_point(0.0, 0.0, 0.0),
             direction: V4::make_vector(0.0, 0.0, 1.0)
         };
-
-        let xs = w.intersections(&r);
 
         let c = w.shade(&r, 0.5, Rc::clone(&w.objects[1]));
 
