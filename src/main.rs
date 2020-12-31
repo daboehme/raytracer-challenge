@@ -4,6 +4,7 @@ mod color;
 mod experiment;
 mod lighting;
 mod linalg;
+mod plane;
 mod ray;
 mod shape;
 mod sphere;

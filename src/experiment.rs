@@ -4,6 +4,7 @@ use crate::color::Color;
 use crate::linalg::{M4,V4};
 use crate::lighting;
 use crate::lighting::{Material,LightSource};
+use crate::plane::Plane;
 use crate::shape::Shape;
 use crate::sphere::Sphere;
 use crate::ray;
@@ -103,6 +104,10 @@ pub fn draw_world() -> Canvas {
             pos: V4::make_point(-10.0, 10.0, -10.0),
             intensity: Color::WHITE
         } );
+    // world.add_light( &LightSource {
+    //         pos: V4::make_point(8.0, 10.0, -10.0),
+    //         intensity: Color::RED
+    //     } );
 
     let m = Material {
         color: Color::new(0.1, 1.0, 0.5),
@@ -114,19 +119,29 @@ pub fn draw_world() -> Canvas {
 
     let t = Transform::new().translate(-0.5, 1.0, 0.5);
 
-    world.add_object(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
+    world.add_shape(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
 
     let t = Transform::new()
         .translate(1.5, 0.5, -0.5)
         .scale(0.5, 0.5, 0.5);
 
-    world.add_object(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
+    world.add_shape(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
 
     let t = Transform::new()
         .translate(-1.5, 0.33, -0.75)
         .scale(0.33, 0.33, 0.33);
 
-    world.add_object(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
+    world.add_shape(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
+
+    let m = Material {
+        color: Color::new(0.7, 0.6, 0.7),
+        ambient: 0.2,
+        diffuse: 0.7,
+        specular: 0.1,
+        shininess: 20.0
+    };
+
+    world.add_shape(Rc::new(Shape::new(Box::new(Plane()), &m, &M4::identity())));
 
     let from = V4::make_point(0.0, 1.5, -5.0);
     let to = V4::make_point(0.0, 1.0, 0.0);
