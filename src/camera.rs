@@ -5,6 +5,8 @@ use crate::linalg::{V4,M4};
 use crate::ray::Ray;
 use crate::world::World;
 
+use image;
+
 #[derive(Clone,Copy,Debug)]
 pub struct Camera {
     width: usize,
@@ -57,7 +59,7 @@ impl Camera {
         }
     }
 
-    pub fn render(&self, world: &World) -> Canvas {
+    pub fn render_to_canvas(&self, world: &World) -> Canvas {
         let mut canvas = Canvas::new(self.width, self.height, Color::BLACK);
 
         for y in 0..self.height {
@@ -68,6 +70,12 @@ impl Camera {
         }
 
         canvas
+    }
+
+    pub fn render(&self, world: &World) -> image::RgbImage {
+        image::RgbImage::from_fn(self.width as u32, self.height as u32, |x, y| {
+                image::Rgb::from(world.color_at(&self.ray(x as usize, y as usize)))
+            })
     }
 }
 

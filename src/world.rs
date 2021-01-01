@@ -226,7 +226,7 @@ mod tests {
         let t = Transform::view_transform(&from, &to, &up);
         let c = Camera::new(11, 11, std::f32::consts::FRAC_PI_2, &t.matrix);
 
-        let v = c.render(&w).at(5, 5);
+        let v = c.render_to_canvas(&w).at(5, 5);
 
         assert!(approx_eq!(f32, v.r, 0.38066, epsilon = 0.0001));
         assert!(approx_eq!(f32, v.g, 0.47583, epsilon = 0.0001));

@@ -97,7 +97,7 @@ pub fn draw_sphere_lighting() -> Canvas {
     canvas
 }
 
-pub fn draw_world() -> Canvas {
+pub fn draw_world() -> image::RgbImage {
     let mut world = World::new();
 
     world.add_light( &LightSource {
@@ -149,5 +149,5 @@ pub fn draw_world() -> Canvas {
 
     let vt = Transform::view_transform(&from, &to, &up);
 
-    Camera::new(480, 320, std::f32::consts::FRAC_PI_3, &vt.matrix).render(&world)
+    Camera::new(640, 480, std::f32::consts::FRAC_PI_3, &vt.matrix).render(&world)
 }
