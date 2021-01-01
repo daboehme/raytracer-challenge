@@ -5,6 +5,7 @@ use crate::linalg::{V4,M4};
 use crate::ray::Ray;
 use crate::world::World;
 
+#[derive(Clone,Copy,Debug)]
 pub struct Camera {
     width: usize,
     height: usize,
@@ -20,13 +21,8 @@ impl Camera {
         let hv = (fov / 2.0).tan();
         let aspect = (hsize as f32) / (vsize as f32);
 
-        let mut halfw = hv;
-        let mut halfh = hv / aspect;
-
-        if aspect < 1.0 {
-            halfw = hv * aspect;
-            halfh = hv
-        }
+        let halfw = if aspect >= 1.0 { hv } else { hv * aspect };
+        let halfh = if aspect >= 1.0 { hv / aspect } else { hv };
 
         Camera {
             width: hsize,

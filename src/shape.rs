@@ -11,7 +11,7 @@ pub trait BaseShape {
 pub struct Shape {
     base: Box<dyn BaseShape>,
     transform_i: M4,
-    mat: Material
+    material: Material
 }
 
 impl Shape {
@@ -19,7 +19,7 @@ impl Shape {
         Shape {
             base: shape,
             transform_i: trans.invert(),
-            mat: *mat
+            material: *mat
         }
     }
 
@@ -35,8 +35,8 @@ impl Shape {
         V4::make_vector(n.x(), n.y(), n.z()).normalize()
     }
 
-    pub fn material(&self) -> Material {
-        self.mat
+    pub fn material(&self) -> &Material {
+        &self.material
     }
 }
 

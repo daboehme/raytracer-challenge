@@ -12,6 +12,12 @@ pub struct World {
     shapes: Vec< Rc<Shape> >
 }
 
+type Intersection = (f32, Rc<Shape>);
+
+fn hit<I: IntoIterator<Item=Intersection> >(xs: I) -> Option<Intersection> {
+    xs.into_iter().find(|x| x.0 >= 0.0)
+}
+
 impl World {
     pub fn new() -> World {
         World {
@@ -20,20 +26,17 @@ impl World {
         }
     }
 
-    fn intersections(&self, ray: &Ray) -> Vec< (f32, Rc<Shape>) > {
-        let mut result = Vec::new();
+    fn intersections(&self, ray: &Ray) -> Vec<Intersection> {
+        let mut xs = Vec::new();
 
         for shape in self.shapes.iter() {
-            let hits = shape.intersect(ray);
-
-            for hit in hits {
-                result.push( (hit, Rc::clone(&shape)) )
+            for t in shape.intersect(ray) {
+                xs.push( (t, Rc::clone(&shape)) )
             }
         }
 
-        result.sort_unstable_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
-
-        result
+        xs.sort_unstable_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        xs
     }
 
     fn is_shadowed(&self, light: &LightSource, point: &V4) -> bool {
@@ -43,10 +46,8 @@ impl World {
             direction: v.normalize()
         };
 
-        let xs = self.intersections(&r);
-
-        match xs.iter().find(|&x| x.0 >= 0.0) {
-            Some((dst, _)) => *dst < v.magnitude(),
+        match hit(self.intersections(&r)) {
+            Some((dst, _)) => dst < v.magnitude(),
             None => false
         }
     }
@@ -54,7 +55,6 @@ impl World {
     fn shade(&self, ray: &Ray, hit: f32, obj: Rc<Shape>) -> Color {
         let point = ray.position(hit);
         let eyev  = -ray.direction;
-        let mat   = obj.material();
         let mut normalv = obj.normal_at(point);
 
         if V4::dot(&normalv, &eyev) < 0.0 {
@@ -68,7 +68,7 @@ impl World {
         for light in self.lights.iter() {
             colorv +=
                 lighting::lighting(
-                    &mat,
+                    obj.material(),
                     light,
                     &point,
                     &eyev,
@@ -81,10 +81,8 @@ impl World {
     }
 
     pub fn color_at(&self, ray: &Ray) -> Color {
-        let xs = self.intersections(&ray);
-
-        match xs.iter().find(|&x| x.0 >= 0.0) {
-            Some((dst, obj)) => self.shade(ray, *dst, Rc::clone(obj)),
+        match hit(self.intersections(ray)) {
+            Some((dst, obj)) => self.shade(ray, dst, Rc::clone(&obj)),
             None => Color::BLACK
         }
     }
