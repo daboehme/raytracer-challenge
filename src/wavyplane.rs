@@ -3,31 +3,69 @@ use crate::ray::Ray;
 use crate::shape::BaseShape;
 
 use std::mem;
+use std::iter::FromIterator;
 
-pub struct WavyPlane {
+#[derive(Clone,Copy,Debug)]
+pub struct Wave {
     origin: V4,
     wavelength: f32,
     amplitude: f32
 }
 
-impl WavyPlane {
-    pub fn new (origin: &V4, len: f32, amp: f32) -> WavyPlane {
-        WavyPlane {
+impl Wave {
+    pub fn new(origin: &V4, len: f32, amp: f32) -> Wave {
+        Wave {
             origin: *origin,
             wavelength: len,
             amplitude: amp
         }
     }
+}
+
+pub struct WavyPlane {
+    waves: Vec<Wave>,
+    amplitude: f32
+}
+
+impl WavyPlane {
+    pub fn new<I> (ws: I) -> WavyPlane
+    where
+        I: IntoIterator<Item=Wave>
+    {
+        let waves = Vec::from_iter(ws.into_iter());
+        let amplitude = waves.iter().fold(0.0, |acc,w| acc + w.amplitude.abs());
+
+        WavyPlane {
+            waves: waves,
+            amplitude: amplitude
+        }
+    }
 
     fn eval(&self, point: V4) -> f32 {
         let p = V4::make_point(point.x(), 0.0, point.z());
-        let x = (p - self.origin).magnitude();
-        self.amplitude * (self.wavelength * x).sin()
+        let mut res = 0.0;
+
+        for wave in self.waves.iter() {
+            let x = (p - wave.origin).magnitude();
+            res  += wave.amplitude * (wave.wavelength * x).sin()
+        }
+
+        res
+    }
+}
+
+fn intersect_plane(r: &Ray) -> Vec<f32> {
+    if r.direction.y().abs() < 0.0001 {
+        vec![]
+    } else {
+        vec![ -r.origin.y() / r.direction.y() ]
     }
 }
 
 impl BaseShape for WavyPlane {
     fn intersect(&self, r: &Ray) -> Vec<f32> {
+        return intersect_plane(r);
+
         let is_in_wavezone = r.origin.y().abs() <= self.amplitude;
 
         if r.direction.y().abs() < 0.001 && !is_in_wavezone {
