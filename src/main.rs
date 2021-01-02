@@ -9,6 +9,7 @@ mod ray;
 mod shape;
 mod sphere;
 mod transform;
+mod wavyplane;
 mod world;
 
 use std::time::{SystemTime};
