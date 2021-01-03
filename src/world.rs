@@ -26,6 +26,13 @@ impl World {
         }
     }
 
+    pub fn new_with(lights: Vec<LightSource>, shapes: Vec<Rc<Shape>>) -> World {
+        World {
+            lights: lights,
+            shapes: shapes
+        }
+    }
+
     fn intersections(&self, ray: &Ray) -> Vec<Intersection> {
         let mut xs = Vec::new();
 
