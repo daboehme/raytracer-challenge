@@ -1,0 +1,47 @@
+# definitions:
+
+.mat.blue.matte:
+  color: [ 0.2, 0.4, 0.8 ]
+  ambient: 0.2
+  diffuse: 0.7
+  specular: 0.1
+  shininess: 20.0
+
+.mat.green.shiny:
+  color: [ 0.1, 1.0, 0.5 ]
+  ambient: 0.1
+  diffuse: 0.7
+  specular: 0.3
+  shininess: 200.0
+
+
+# the scene:
+
+camera:
+  width: 640
+  height: 480
+  field_of_view: 60.0
+  from: [ 0.0, 1.5, -5.0 ]
+  to: [ 0.0, 1.0, 0.0 ]
+
+lights:
+  - point:
+      position: [ -10.0, 10.0, -10.0 ]
+
+shapes:
+  - sphere:
+      material: .mat.green.shiny
+      transformations:
+        - translate: [ -0.5, 1.0, 0.5 ]
+  - sphere:
+      material: .mat.green.shiny
+      transformations:
+        - translate: [ 1.5, 0.5, -0.5 ]
+        - scale: [ 0.5, 0.5, 0.5 ]
+  - sphere:
+      material: .mat.green.shiny
+      transformations:
+        - translate: [ -1.5, 0.33, -0.75 ]
+        - scale: [ 0.33, 0.33, 0.33 ]
+  - plane:
+      material: .mat.blue.matte
