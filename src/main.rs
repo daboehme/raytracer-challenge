@@ -65,6 +65,10 @@ fn main() {
         }
     };
 
-    let (camera, world) = setup(&config).expect("Setup failed");
+    let (camera, world) = setup(&config).unwrap_or_else(|x| {
+            eprintln!("Setup error: {}", x);
+            process::exit(1)
+        });
+
     process(&config, &camera, &world);
 }

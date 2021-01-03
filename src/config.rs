@@ -61,7 +61,7 @@ impl Config {
         let output = matches.opt_str("output").unwrap_or(String::from("render.png"));
         let input = match matches.free.first() {
             Some(input) => input.clone(),
-            None => return Err(ConfigError::ConfigError(String::from("No input provided")).into())
+            None => return Err(ConfigError::ConfigError(String::from("No input provided")))
         };
 
         let config = Config {
