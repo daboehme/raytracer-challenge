@@ -65,12 +65,10 @@ impl Add for V4 {
 
 impl AddAssign for V4 {
     fn add_assign(&mut self, rhs: Self) {
-        *self = V4(
-            self.0 + rhs.0,
-            self.1 + rhs.1,
-            self.2 + rhs.2,
-            self.3 + rhs.3
-        )
+        self.0 += rhs.0;
+        self.1 += rhs.1;
+        self.2 += rhs.2;
+        self.3 += rhs.3;
     }
 }
 
