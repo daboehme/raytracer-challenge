@@ -29,7 +29,7 @@ impl From<V4> for Color {
 
 impl From<Color> for V4 {
     fn from(c: Color) -> V4 {
-        V4::make_vector(c.r, c.g, c.b)
+        V4::new_vector(c.r, c.g, c.b)
     }
 }
 

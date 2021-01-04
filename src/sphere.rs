@@ -6,7 +6,7 @@ pub struct Sphere ();
 
 impl BaseShape for Sphere {
     fn intersect(&self, r: &Ray) -> Vec<f32> {
-        let s2r = r.origin - V4::make_point(0.0, 0.0, 0.0);
+        let s2r = r.origin - V4::new_point(0.0, 0.0, 0.0);
 
         let a = V4::dot(&r.direction, &r.direction);
         let b = 2.0 * V4::dot(&r.direction, &s2r);
@@ -27,7 +27,7 @@ impl BaseShape for Sphere {
     }
 
     fn normal_at(&self, p: V4) -> V4 {
-        p - V4::make_point(0.0, 0.0, 0.0).normalize()
+        p - V4::new_point(0.0, 0.0, 0.0).normalize()
     }
 }
 
@@ -55,16 +55,16 @@ mod tests {
 
     #[test]
     fn sphere_intersect() {
-        let z = V4::make_vector(0.0, 0.0, 1.0);
+        let z = V4::new_vector(0.0, 0.0, 1.0);
         let r = Ray {
-            origin: V4::make_point(0.0, 0.0, -5.0), direction: z
+            origin: V4::new_point(0.0, 0.0, -5.0), direction: z
         };
         let s = default_sphere();
 
         assert_eq!(s.intersect(&r), [ 4.0, 6.0 ]);
 
         let r = Ray {
-            origin: V4::make_point(0.0, 1.0, -5.0), direction: z
+            origin: V4::new_point(0.0, 1.0, -5.0), direction: z
         };
 
         assert_eq!(s.intersect(&r), [ 5.0, 5.0 ]);
@@ -75,8 +75,8 @@ mod tests {
         let t = Transform::new().translate(0.0, 1.0, 0.0);
         let s = Shape::new(Box::new(Sphere()), &DEFAULT_MAT, &t.matrix);
 
-        let p = V4::make_point(0.0, 1.70711, -0.70711);
-        let n = V4::make_vector(0.0, 0.70711, -0.70711);
+        let p = V4::new_point(0.0, 1.70711, -0.70711);
+        let n = V4::new_vector(0.0, 0.70711, -0.70711);
 
         assert!(approx_eq!(V4, s.normal_at(p), n, epsilon = 0.0001));
     }

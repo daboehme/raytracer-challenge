@@ -13,8 +13,8 @@ impl BaseShape for Plane {
         }
     }
 
-    fn normal_at(&self, p: V4) -> V4 {
-        V4::make_vector(0.0, 1.0, 0.0)
+    fn normal_at(&self, _: V4) -> V4 {
+        V4::new_vector(0.0, 1.0, 0.0)
     }
 }
 
@@ -24,34 +24,32 @@ mod tests {
 
     use crate::linalg::V4;
 
-    use float_cmp::*;
-
     #[test]
     fn normal() {
         let p = Plane();
 
-        assert_eq!(p.normal_at(V4::make_point(0.0, 0.0, 0.0)), V4::make_vector(0.0, 1.0, 0.0));
-        assert_eq!(p.normal_at(V4::make_point(10.0, 0.0, -50.0)), V4::make_vector(0.0, 1.0, 0.0));
+        assert_eq!(p.normal_at(V4::new_point(0.0, 0.0, 0.0)), V4::new_vector(0.0, 1.0, 0.0));
+        assert_eq!(p.normal_at(V4::new_point(10.0, 0.0, -50.0)), V4::new_vector(0.0, 1.0, 0.0));
     }
 
     #[test]
     fn intersect_parallel() {
         let mut ray = Ray {
-            origin: V4::make_point(0.0, 10.0, 0.0),
-            direction: V4::make_vector(0.0, 0.0, 1.0)
+            origin: V4::new_point(0.0, 10.0, 0.0),
+            direction: V4::new_vector(0.0, 0.0, 1.0)
         };
 
         assert!(Plane().intersect(&ray).is_empty());
 
-        ray.origin = V4::make_point(0.0, 0.0, 0.0);
+        ray.origin = V4::new_point(0.0, 0.0, 0.0);
         assert!(Plane().intersect(&ray).is_empty());
     }
 
     #[test]
     fn intersect_above() {
         let ray = Ray {
-            origin: V4::make_point(0.0, 1.0, 0.0),
-            direction: V4::make_point(0.0, -1.0, 0.0)
+            origin: V4::new_point(0.0, 1.0, 0.0),
+            direction: V4::new_point(0.0, -1.0, 0.0)
         };
 
         assert_eq!(Plane().intersect(&ray), [ 1.0 ]);
@@ -60,8 +58,8 @@ mod tests {
     #[test]
     fn intersect_below() {
         let ray = Ray {
-            origin: V4::make_point(0.0, -1.0, 0.0),
-            direction: V4::make_point(0.0, 1.0, 0.0)
+            origin: V4::new_point(0.0, -1.0, 0.0),
+            direction: V4::new_point(0.0, 1.0, 0.0)
         };
 
         assert_eq!(Plane().intersect(&ray), [ 1.0 ]);

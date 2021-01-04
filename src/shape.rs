@@ -1,5 +1,4 @@
 use crate::lighting::Material;
-use crate::linalg;
 use crate::linalg::{M4,V4};
 use crate::ray::Ray;
 
@@ -11,14 +10,18 @@ pub trait BaseShape {
 pub struct Shape {
     base: Box<dyn BaseShape>,
     transform_i: M4,
+    transform_i_t: M4,
     material: Material
 }
 
 impl Shape {
     pub fn new(shape: Box<dyn BaseShape>, mat: &Material, trans: &M4) -> Shape {
+        let t_i = trans.invert();
+
         Shape {
             base: shape,
-            transform_i: trans.invert(),
+            transform_i: t_i,
+            transform_i_t: t_i.transpose(),
             material: *mat
         }
     }
@@ -28,11 +31,10 @@ impl Shape {
     }
 
     pub fn normal_at(&self, p: V4) -> V4 {
-        let p = linalg::mvmul(&self.transform_i, &p);
-        let n = self.base.normal_at(p);
-        let n = linalg::mvmul(&self.transform_i.transpose(), &n);
+        let p = &self.transform_i * p;
+        let n = &self.transform_i_t * self.base.normal_at(p);
 
-        V4::make_vector(n.x(), n.y(), n.z()).normalize()
+        V4::new_vector(n.x(), n.y(), n.z()).normalize()
     }
 
     pub fn material(&self) -> &Material {
@@ -78,8 +80,8 @@ mod tests {
     #[test]
     fn transform_intersect() {
         let res = Ray {
-            origin: V4::make_point(0.0, 0.0, 0.0),
-            direction: V4::make_vector(0.0, 0.0, 0.0)
+            origin: V4::new_point(0.0, 0.0, 0.0),
+            direction: V4::new_vector(0.0, 0.0, 0.0)
         };
         let res = Rc::new(RefCell::new(res));
 
@@ -88,28 +90,28 @@ mod tests {
             let s = Shape::new(Box::new(TestShape { ray: Rc::clone(&res) }), &DEFAULT_MAT, &t.matrix);
 
             let r = Ray {
-                origin: V4::make_point(0.0, 0.0, -5.0),
-                direction: V4::make_vector(0.0, 0.0, 1.0)
+                origin: V4::new_point(0.0, 0.0, -5.0),
+                direction: V4::new_vector(0.0, 0.0, 1.0)
             };
 
             s.intersect(&r);
         }
 
-        assert!(approx_eq!(V4, res.borrow().origin, V4::make_point(0.0, 0.0, -2.5)));
-        assert!(approx_eq!(V4, res.borrow().direction, V4::make_vector(0.0, 0.0, 0.5)));
+        assert!(approx_eq!(V4, res.borrow().origin, V4::new_point(0.0, 0.0, -2.5)));
+        assert!(approx_eq!(V4, res.borrow().direction, V4::new_vector(0.0, 0.0, 0.5)));
     }
 
     #[test]
     fn transform_normal() {
         let ray = Ray {
-            origin: V4::make_point(0.0, 0.0, 0.0),
-            direction: V4::make_vector(0.0, 0.0, 0.0)
+            origin: V4::new_point(0.0, 0.0, 0.0),
+            direction: V4::new_vector(0.0, 0.0, 0.0)
         };
 
         let t = Transform::new().translate(0.0, 1.0, 0.0);
         let s = Shape::new(Box::new(TestShape { ray: Rc::new(RefCell::new(ray)) }), &DEFAULT_MAT, &t.matrix);
 
-        let n = s.normal_at(V4::make_point(0.0, 1.70711, -0.70711));
-        assert!(approx_eq!(V4, n, V4::make_vector(0.0, 0.70711, -0.70711), epsilon = 0.0001));
+        let n = s.normal_at(V4::new_point(0.0, 1.70711, -0.70711));
+        assert!(approx_eq!(V4, n, V4::new_vector(0.0, 0.70711, -0.70711), epsilon = 0.0001));
     }
 }

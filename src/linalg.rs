@@ -1,14 +1,15 @@
-use std::ops::{Add,AddAssign,Sub,Mul,Neg};
+use std::convert::{AsMut,AsRef,From};
+use std::ops::{Add,AddAssign,Sub,SubAssign,Mul,Neg};
 
-#[derive(Clone,Copy,Debug,PartialEq)]
+#[derive(Clone,Copy,Debug,PartialEq,PartialOrd)]
 pub struct V4 (f32, f32, f32, f32);
 
 impl V4 {
-    pub fn make_point(x: f32, y: f32, z: f32) -> V4 {
+    pub fn new_point(x: f32, y: f32, z: f32) -> V4 {
         V4(x, y, z, 1.0)
     }
 
-    pub fn make_vector(x: f32, y: f32, z: f32) -> V4 {
+    pub fn new_vector(x: f32, y: f32, z: f32) -> V4 {
         V4(x, y, z, 0.0)
     }
 
@@ -42,7 +43,7 @@ impl V4 {
     }
 
     pub fn cross(a: &V4, b: &V4) -> V4 {
-        V4::make_vector(a.1*b.2-a.2*b.1, a.2*b.0-a.0*b.2, a.0*b.1-a.1*b.0)
+        V4::new_vector(a.1*b.2-a.2*b.1, a.2*b.0-a.0*b.2, a.0*b.1-a.1*b.0)
     }
 
     pub fn reflect(a: V4, b: V4) -> V4 {
@@ -85,6 +86,15 @@ impl Sub for V4 {
     }
 }
 
+impl SubAssign for V4 {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0;
+        self.1 -= rhs.1;
+        self.2 -= rhs.2;
+        self.3 -= rhs.3;
+    }
+}
+
 impl Mul<f32> for V4 {
     type Output = Self;
 
@@ -101,7 +111,7 @@ impl Neg for V4 {
     }
 }
 
-#[derive(Clone,Copy,Debug,PartialEq)]
+#[derive(Clone,Copy,Debug,PartialEq,PartialOrd)]
 pub struct M4([f32; 16]);
 
 impl M4 {
@@ -112,10 +122,6 @@ impl M4 {
             0.0, 0.0, 1.0, 0.0,
             0.0, 0.0, 0.0, 1.0
         ])
-    }
-
-    pub fn from_array(a: &[f32; 16]) -> M4 {
-        M4(*a)
     }
 
     pub fn set(&mut self, row: usize, col: usize, val: f32) {
@@ -188,46 +194,80 @@ impl M4 {
 
         m
     }
-}
 
-pub fn mmul(a: &M4, b: &M4) -> M4 {
-    let mut c = M4([ 0.0; 16 ]);
+    pub fn mvmul(m: &M4, v: V4) -> V4 {
+        V4(
+            m.0[0*4+0] * v.0 +
+            m.0[0*4+1] * v.1 +
+            m.0[0*4+2] * v.2 +
+            m.0[0*4+3] * v.3,
 
-    for y in 0..4 {
-        for x in 0..4 {
-            c.0[4*y+x] =
-                a.0[4*y+0] * b.0[0*4+x] +
-                a.0[4*y+1] * b.0[1*4+x] +
-                a.0[4*y+2] * b.0[2*4+x] +
-                a.0[4*y+3] * b.0[3*4+x]
-        }
+            m.0[1*4+0] * v.0 +
+            m.0[1*4+1] * v.1 +
+            m.0[1*4+2] * v.2 +
+            m.0[1*4+3] * v.3,
+
+            m.0[2*4+0] * v.0 +
+            m.0[2*4+1] * v.1 +
+            m.0[2*4+2] * v.2 +
+            m.0[2*4+3] * v.3,
+
+            m.0[3*4+0] * v.0 +
+            m.0[3*4+1] * v.1 +
+            m.0[3*4+2] * v.2 +
+            m.0[3*4+3] * v.3
+        )
     }
 
-    c
+    pub fn mmul(a: &M4, b: &M4) -> M4 {
+        let mut c = M4([ 0.0; 16 ]);
+
+        for y in 0..4 {
+            for x in 0..4 {
+                c.0[4*y+x] =
+                    a.0[4*y+0] * b.0[0*4+x] +
+                    a.0[4*y+1] * b.0[1*4+x] +
+                    a.0[4*y+2] * b.0[2*4+x] +
+                    a.0[4*y+3] * b.0[3*4+x]
+            }
+        }
+
+        c
+    }
 }
 
-pub fn mvmul(m: &M4, v: &V4) -> V4 {
-    V4(
-        m.0[0*4+0] * v.0 +
-        m.0[0*4+1] * v.1 +
-        m.0[0*4+2] * v.2 +
-        m.0[0*4+3] * v.3,
+impl AsRef<[f32;16]> for M4 {
+    fn as_ref(&self) -> &[f32;16] {
+        &self.0
+    }
+}
 
-        m.0[1*4+0] * v.0 +
-        m.0[1*4+1] * v.1 +
-        m.0[1*4+2] * v.2 +
-        m.0[1*4+3] * v.3,
+impl AsMut<[f32;16]> for M4 {
+    fn as_mut(&mut self) -> &mut [f32;16] {
+        &mut self.0
+    }
+}
 
-        m.0[2*4+0] * v.0 +
-        m.0[2*4+1] * v.1 +
-        m.0[2*4+2] * v.2 +
-        m.0[2*4+3] * v.3,
+impl From<[f32; 16]> for M4 {
+    fn from(from: [f32; 16]) -> M4 {
+        M4(from)
+    }
+}
 
-        m.0[3*4+0] * v.0 +
-        m.0[3*4+1] * v.1 +
-        m.0[3*4+2] * v.2 +
-        m.0[3*4+3] * v.3
-    )
+impl Mul<V4> for M4 {
+    type Output = V4;
+
+    fn mul(self, v: V4) -> V4 {
+        M4::mvmul(&self, v)
+    }
+}
+
+impl Mul<V4> for &M4 {
+    type Output = V4;
+
+    fn mul(self, v: V4) -> V4 {
+        M4::mvmul(self, v)
+    }
 }
 
 use float_cmp::ApproxEq;
@@ -271,8 +311,8 @@ mod tests {
     use float_cmp::*;
 
     #[test]
-    fn make_point() {
-        let p = V4::make_point(1.0, -3.5, 9.0);
+    fn new_point() {
+        let p = V4::new_point(1.0, -3.5, 9.0);
         assert_eq!(p.x(), 1.0);
         assert_eq!(p.y(), -3.5);
         assert_eq!(p.z(), 9.0);
@@ -281,8 +321,8 @@ mod tests {
 
     #[test]
     fn add_pv() {
-        let p = V4::make_point(4.0, -5.5, 10.0);
-        let v = V4::make_vector(1.5, 2.0, 3.5);
+        let p = V4::new_point(4.0, -5.5, 10.0);
+        let v = V4::new_vector(1.5, 2.0, 3.5);
         let r = p + v;
         assert_eq!(r.x(), 5.5);
         assert_eq!(r.y(), -3.5);
@@ -291,13 +331,13 @@ mod tests {
 
     #[test]
     fn magnitude() {
-        assert_eq!(V4::make_vector(1.0, 0.0, 0.0).magnitude(), 1.0);
-        assert_eq!(V4::make_vector(-1.0, -2.0, -3.0).magnitude(), (14.0_f32).sqrt());
+        assert_eq!(V4::new_vector(1.0, 0.0, 0.0).magnitude(), 1.0);
+        assert_eq!(V4::new_vector(-1.0, -2.0, -3.0).magnitude(), (14.0_f32).sqrt());
     }
 
     #[test]
     fn normalize() {
-        let v1n = V4::make_vector(4.0, 0.0, 0.0).normalize();
+        let v1n = V4::new_vector(4.0, 0.0, 0.0).normalize();
         assert_eq!(v1n.x(), 1.0);
         assert_eq!(v1n.y(), 0.0);
         assert_eq!(v1n.z(), 0.0);
@@ -305,15 +345,15 @@ mod tests {
 
     #[test]
     fn dot() {
-        let a = V4::make_vector(1.0, 2.0, 3.0);
-        let b = V4::make_vector(2.0, 3.0, 4.0);
+        let a = V4::new_vector(1.0, 2.0, 3.0);
+        let b = V4::new_vector(2.0, 3.0, 4.0);
         assert_eq!(V4::dot(&a, &b), 20.0)
     }
 
     #[test]
     fn cross() {
-        let a = V4::make_vector(1.0, 2.0, 3.0);
-        let b = V4::make_vector(2.0, 3.0, 4.0);
+        let a = V4::new_vector(1.0, 2.0, 3.0);
+        let b = V4::new_vector(2.0, 3.0, 4.0);
         let c = V4::cross(&a, &b);
         assert_eq!(c.x(), -1.0);
         assert_eq!(c.y(), 2.0);
@@ -326,15 +366,15 @@ mod tests {
 
     #[test]
     fn reflect() {
-        let v = V4::make_vector(1.0, -1.0, 0.0);
-        let n = V4::make_vector(0.0, 1.0, 0.0);
-        assert_eq!(V4::reflect(v, n), V4::make_vector(1.0, 1.0, 0.0));
+        let v = V4::new_vector(1.0, -1.0, 0.0);
+        let n = V4::new_vector(0.0, 1.0, 0.0);
+        assert_eq!(V4::reflect(v, n), V4::new_vector(1.0, 1.0, 0.0));
 
         let sq2half = std::f32::consts::SQRT_2 / 2.0;
 
-        let v = V4::make_vector(0.0, -1.0, 0.0);
-        let n = V4::make_vector(sq2half, sq2half, 0.0);
-        assert!(approx_eq!(V4, V4::reflect(v, n), V4::make_vector(1.0, 0.0, 0.0)))
+        let v = V4::new_vector(0.0, -1.0, 0.0);
+        let n = V4::new_vector(sq2half, sq2half, 0.0);
+        assert!(approx_eq!(V4, V4::reflect(v, n), V4::new_vector(1.0, 0.0, 0.0)))
     }
 
     #[test]
@@ -372,10 +412,10 @@ mod tests {
             16.0, 26.0,  46.0,  42.0
         ]);
 
-        assert_eq!(mmul(&a, &b), res);
+        assert_eq!(M4::mmul(&a, &b), res);
 
         let  i = M4::identity();
-        assert_eq!(mmul(&a, &i), a);
+        assert_eq!(M4::mmul(&a, &i), a);
     }
 
     #[test]
@@ -390,7 +430,7 @@ mod tests {
         let v   = V4(1.0,   2.0,  3.0, 1.0);
         let res = V4(18.0, 24.0, 33.0, 1.0);
 
-        assert_eq!(mvmul(&a, &v), res);
+        assert_eq!(M4::mvmul(&a, v), res);
     }
 
     #[test]

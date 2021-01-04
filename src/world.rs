@@ -120,7 +120,7 @@ mod tests {
 
         w.lights.push( LightSource {
                 intensity: Color::WHITE,
-                pos: V4::make_point(-10.0, 10.0, -10.0)
+                pos: V4::new_point(-10.0, 10.0, -10.0)
             } );
 
         let t = Transform::new();
@@ -152,8 +152,8 @@ mod tests {
     fn intersections() {
         let w = make_world();
         let r = Ray {
-            origin: V4::make_point(0.0, 0.0, -5.0),
-            direction: V4::make_vector(0.0, 0.0, 1.0)
+            origin: V4::new_point(0.0, 0.0, -5.0),
+            direction: V4::new_vector(0.0, 0.0, 1.0)
         };
 
         let xs = w.intersections(&r);
@@ -170,8 +170,8 @@ mod tests {
     fn shade_hit() {
         let w = make_world();
         let r = Ray {
-            origin: V4::make_point(0.0, 0.0, -5.0),
-            direction: V4::make_vector(0.0, 0.0, 1.0)
+            origin: V4::new_point(0.0, 0.0, -5.0),
+            direction: V4::new_vector(0.0, 0.0, 1.0)
         };
 
         let c = w.shade(&r, 4.0, Rc::clone(&w.shapes[0]));
@@ -184,11 +184,11 @@ mod tests {
     #[test]
     fn shade_ins() {
         let mut w = make_world();
-        w.lights[0].pos = V4::make_point(0.0, 0.25, 0.0);
+        w.lights[0].pos = V4::new_point(0.0, 0.25, 0.0);
 
         let r = Ray {
-            origin: V4::make_point(0.0, 0.0, 0.0),
-            direction: V4::make_vector(0.0, 0.0, 1.0)
+            origin: V4::new_point(0.0, 0.0, 0.0),
+            direction: V4::new_vector(0.0, 0.0, 1.0)
         };
 
         let c = w.shade(&r, 0.5, Rc::clone(&w.shapes[1]));
@@ -202,8 +202,8 @@ mod tests {
     fn color_miss() {
         let w = make_world();
         let r = Ray {
-            origin: V4::make_point(0.0, 0.0, -5.0),
-            direction: V4::make_vector(0.0, 1.0, 0.0)
+            origin: V4::new_point(0.0, 0.0, -5.0),
+            direction: V4::new_vector(0.0, 1.0, 0.0)
         };
 
         assert_eq!(w.color_at(&r), Color::BLACK);
@@ -213,22 +213,22 @@ mod tests {
     fn color_hit() {
         let w = make_world();
         let r = Ray {
-            origin: V4::make_point(0.0, 0.0, -5.0),
-            direction: V4::make_vector(0.0, 0.0, 1.0)
+            origin: V4::new_point(0.0, 0.0, -5.0),
+            direction: V4::new_vector(0.0, 0.0, 1.0)
         };
 
         let c = w.color_at(&r);
 
-        assert!(approx_eq!(V4, V4::from(c), V4::make_vector(0.38066, 0.47583, 0.2855), epsilon = 0.0001));
+        assert!(approx_eq!(V4, V4::from(c), V4::new_vector(0.38066, 0.47583, 0.2855), epsilon = 0.0001));
     }
 
     #[test]
     fn render() {
         let w = make_world();
 
-        let from = V4::make_point(0.0, 0.0, -5.0);
-        let to = V4::make_point(0.0, 0.0, 0.0);
-        let up = V4::make_vector(0.0, 1.0, 0.0);
+        let from = V4::new_point(0.0, 0.0, -5.0);
+        let to = V4::new_point(0.0, 0.0, 0.0);
+        let up = V4::new_vector(0.0, 1.0, 0.0);
 
         let t = Transform::view_transform(&from, &to, &up);
         let c = Camera::new(11, 11, std::f32::consts::FRAC_PI_2, &t.matrix);
@@ -243,14 +243,14 @@ mod tests {
     #[test]
     fn shadow() {
         let w = make_world();
-        let p = V4::make_point(0.0, 10.0, 0.0);
+        let p = V4::new_point(0.0, 10.0, 0.0);
 
         assert!(!w.is_shadowed(&w.lights.first().unwrap(), &p));
 
-        let p = V4::make_point(10.0, -10.0, 10.0);
+        let p = V4::new_point(10.0, -10.0, 10.0);
         assert!(w.is_shadowed(&w.lights.first().unwrap(), &p));
 
-        let p = V4::make_point(-2.0, 2.0, -2.0);
+        let p = V4::new_point(-2.0, 2.0, -2.0);
         assert!(!w.is_shadowed(&w.lights.first().unwrap(), &p));
     }
 }

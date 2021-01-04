@@ -42,7 +42,7 @@ impl WavyPlane {
     }
 
     fn eval(&self, point: V4) -> f32 {
-        let p = V4::make_point(point.x(), 0.0, point.z());
+        let p = V4::new_point(point.x(), 0.0, point.z());
         let mut res = 0.0;
 
         for wave in self.waves.iter() {
@@ -132,16 +132,16 @@ impl BaseShape for WavyPlane {
     fn normal_at(&self, p: V4) -> V4 {
         const EPS : f32 = 0.01;
 
-        let xa = p + V4::make_vector(-EPS, 0.0, 0.0);
-        let xb = p + V4::make_vector( EPS, 0.0, 0.0);
+        let xa = p + V4::new_vector(-EPS, 0.0, 0.0);
+        let xb = p + V4::new_vector( EPS, 0.0, 0.0);
 
         let dx = (self.eval(xb) - self.eval(xa)) / (2.0 * EPS);
 
-        let za = p + V4::make_vector(0.0, 0.0, -EPS);
-        let zb = p + V4::make_vector(0.0, 0.0,  EPS);
+        let za = p + V4::new_vector(0.0, 0.0, -EPS);
+        let zb = p + V4::new_vector(0.0, 0.0,  EPS);
 
         let dz = (self.eval(zb) - self.eval(za)) / (2.0 * EPS);
 
-        V4::make_vector(-dx, 1.0, -dz).normalize()
+        V4::new_vector(-dx, 1.0, -dz).normalize()
     }
 }

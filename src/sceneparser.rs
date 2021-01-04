@@ -125,9 +125,9 @@ fn read_camera(node: &Yaml) -> Result<Camera> {
     let w = width_height[0].1 as usize;
     let h = width_height[1].1 as usize;
 
-    let from = V4::make_point(from[0], from[1], from[2]);
-    let to = V4::make_point(to[0], to[1], to[2]);
-    let up = V4::make_vector(up[0], up[1], up[2]);
+    let from = V4::new_point(from[0], from[1], from[2]);
+    let to = V4::new_point(to[0], to[1], to[2]);
+    let up = V4::new_vector(up[0], up[1], up[2]);
 
     let vt = Transform::view_transform(&from, &to, &up);
 
@@ -145,7 +145,7 @@ fn read_pointlight(node: &Yaml) -> Result<LightSource> {
         Err(e) => return Err(ParseError::In("position", e).into())
     };
 
-    let pos = V4::make_point(pos[0], pos[1], pos[2]);
+    let pos = V4::new_point(pos[0], pos[1], pos[2]);
     let col = Color::new(col[0], col[1], col[2]);
 
     Ok(LightSource { pos: pos, intensity: col })
@@ -373,7 +373,7 @@ whatever: 42
         let lights = read_lights(&docs[0]).unwrap();
 
         assert_eq!(lights.len(), 2);
-        assert_eq!(lights[0].pos, V4::make_point(4.0, 5.5, -6.0));
+        assert_eq!(lights[0].pos, V4::new_point(4.0, 5.5, -6.0));
         assert_eq!(lights[1].intensity, Color::WHITE);
     }
 
@@ -413,9 +413,9 @@ shininess: 100.0
 
         let trans = read_transformations(&docs[0].as_vec().unwrap()).unwrap();
 
-        let v = V4::make_vector(1.0, 2.0, 3.0);
+        let v = V4::new_vector(1.0, 2.0, 3.0);
 
-        assert!(approx_eq!(V4, mvmul(&trans, &v), reference.apply(&v), epsilon = 0.0001));
+        assert!(approx_eq!(V4, &trans * v, reference.apply(v), epsilon = 0.0001));
     }
 
     #[test]

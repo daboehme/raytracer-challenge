@@ -1,6 +1,5 @@
 use crate::canvas::Canvas;
 use crate::color::Color;
-use crate::linalg;
 use crate::linalg::{V4,M4};
 use crate::ray::Ray;
 use crate::world::World;
@@ -50,8 +49,8 @@ impl Camera {
         let wx = self.half_width - xoff;
         let wy = self.half_height - yoff;
 
-        let pxp = linalg::mvmul(&self.transform_i, &V4::make_point(wx, wy, -1.0));
-        let origin = linalg::mvmul(&self.transform_i, &V4::make_point(0.0, 0.0, 0.0));
+        let pxp = &self.transform_i * V4::new_point(wx, wy, -1.0);
+        let origin = &self.transform_i * V4::new_point(0.0, 0.0, 0.0);
 
         Ray {
             origin: origin,
@@ -101,8 +100,8 @@ mod tests {
         let c = Camera::new_default(201, 101);
         let r = c.ray(100, 50);
 
-        assert!(approx_eq!(V4, r.origin, V4::make_point(0.0, 0.0, 0.0)));
-        assert!(approx_eq!(V4, r.direction, V4::make_vector(0.0, 0.0, -1.0)));
+        assert!(approx_eq!(V4, r.origin, V4::new_point(0.0, 0.0, 0.0)));
+        assert!(approx_eq!(V4, r.direction, V4::new_vector(0.0, 0.0, -1.0)));
     }
 
     #[test]
@@ -110,8 +109,8 @@ mod tests {
         let c = Camera::new_default(201, 101);
         let r = c.ray(0, 0);
 
-        assert!(approx_eq!(V4, r.origin, V4::make_point(0.0, 0.0, 0.0)));
-        assert!(approx_eq!(V4, r.direction, V4::make_vector(0.66519, 0.33259, -0.66851), epsilon = 0.0001));
+        assert!(approx_eq!(V4, r.origin, V4::new_point(0.0, 0.0, 0.0)));
+        assert!(approx_eq!(V4, r.direction, V4::new_vector(0.66519, 0.33259, -0.66851), epsilon = 0.0001));
     }
 
     #[test]
@@ -125,7 +124,7 @@ mod tests {
 
         let sq2half = 0.5 * std::f32::consts::SQRT_2;
 
-        assert!(approx_eq!(V4, r.origin, V4::make_point(0.0, 2.0, -5.0)));
-        assert!(approx_eq!(V4, r.direction, V4::make_vector(sq2half, 0.0, -sq2half), epsilon = 0.0001));
+        assert!(approx_eq!(V4, r.origin, V4::new_point(0.0, 2.0, -5.0)));
+        assert!(approx_eq!(V4, r.direction, V4::new_vector(sq2half, 0.0, -sq2half), epsilon = 0.0001));
     }
 }

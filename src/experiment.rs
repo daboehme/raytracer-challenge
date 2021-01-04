@@ -22,7 +22,7 @@ const DEFAULT_MATERIAL: Material = Material {
 };
 
 pub fn draw_sphere() -> Canvas {
-    let origin = V4::make_point(0.0, 0.0, -5.0);
+    let origin = V4::new_point(0.0, 0.0, -5.0);
 
     let canvas_px = 100;
     let wall_size = 7.0;
@@ -39,7 +39,7 @@ pub fn draw_sphere() -> Canvas {
         for x in 0..canvas_px {
             let world_x = -0.5 * wall_size + px_size * (x as f32);
 
-            let pos = V4::make_point(world_x, world_y, world_z);
+            let pos = V4::new_point(world_x, world_y, world_z);
             let r = ray::Ray {
                 origin: origin, direction: (pos - origin).normalize()
             };
@@ -56,10 +56,10 @@ pub fn draw_sphere() -> Canvas {
 pub fn draw_sphere_lighting() -> Canvas {
     let light = LightSource {
         intensity: Color { r: 1.0, g: 1.0, b: 1.0 },
-        pos: V4::make_point(-10.0, 10.0, -10.0)
+        pos: V4::new_point(-10.0, 10.0, -10.0)
     };
 
-    let origin = V4::make_point(0.0, 0.0, -5.0);
+    let origin = V4::new_point(0.0, 0.0, -5.0);
 
     let canvas_px = 256;
     let wall_size = 7.0;
@@ -76,7 +76,7 @@ pub fn draw_sphere_lighting() -> Canvas {
         for x in 0..canvas_px {
             let world_x = -0.5 * wall_size + px_size * (x as f32);
 
-            let pos = V4::make_point(world_x, world_y, world_z);
+            let pos = V4::new_point(world_x, world_y, world_z);
             let ray = ray::Ray {
                 origin: origin, direction: (pos - origin).normalize()
             };
@@ -101,11 +101,11 @@ pub fn draw_world() -> image::RgbImage {
     let mut world = World::new();
 
     world.add_light( &LightSource {
-            pos: V4::make_point(-10.0, 10.0, -10.0),
+            pos: V4::new_point(-10.0, 10.0, -10.0),
             intensity: Color::WHITE
         } );
     // world.add_light( &LightSource {
-    //         pos: V4::make_point(8.0, 10.0, -10.0),
+    //         pos: V4::new_point(8.0, 10.0, -10.0),
     //         intensity: Color::RED
     //     } );
 
@@ -143,9 +143,9 @@ pub fn draw_world() -> image::RgbImage {
 
     world.add_shape(Rc::new(Shape::new(Box::new(Plane()), &m, &M4::identity())));
 
-    let from = V4::make_point(0.0, 1.5, -5.0);
-    let to = V4::make_point(0.0, 1.0, 0.0);
-    let up = V4::make_vector(0.0, 1.0, 0.0);
+    let from = V4::new_point(0.0, 1.5, -5.0);
+    let to = V4::new_point(0.0, 1.0, 0.0);
+    let up = V4::new_vector(0.0, 1.0, 0.0);
 
     let vt = Transform::view_transform(&from, &to, &up);
 

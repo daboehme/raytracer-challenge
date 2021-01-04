@@ -16,7 +16,7 @@ fn tick(p: &Projectile, v: &linalg::V4) -> Projectile {
 
 pub fn fire(velocity: &linalg::V4, gravity: &linalg::V4, wind: &linalg::V4, canvas: &mut Canvas) -> i32 {
     let mut p = Projectile {
-        pos: linalg::V4::make_point(0.0, 1.0, 0.0),
+        pos: linalg::V4::new_point(0.0, 1.0, 0.0),
         velocity: *velocity
     };
 

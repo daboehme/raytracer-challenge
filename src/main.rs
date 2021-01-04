@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod camera;
 mod canvas;
 mod color;
