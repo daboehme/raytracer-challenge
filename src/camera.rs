@@ -10,7 +10,6 @@ use image;
 pub struct Camera {
     width: usize,
     height: usize,
-    fov:   f32,
     transform_i: M4,
     half_width: f32,
     half_height: f32,
@@ -28,7 +27,6 @@ impl Camera {
         Camera {
             width: hsize,
             height: vsize,
-            fov: fov,
             transform_i: transform.invert(),
             half_width: halfw,
             half_height: halfh,

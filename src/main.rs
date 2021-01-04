@@ -12,7 +12,6 @@ mod sceneparser;
 mod shape;
 mod sphere;
 mod transform;
-mod wavyplane;
 mod world;
 
 use std::env;

@@ -14,8 +14,8 @@ pub struct World {
 
 type Intersection = (f32, Rc<Shape>);
 
-fn hit<I: IntoIterator<Item=Intersection> >(xs: I) -> Option<Intersection> {
-    xs.into_iter().find(|x| x.0 >= 0.0)
+fn hit(xs: &[Intersection]) -> Option<&Intersection> {
+    xs.iter().find(|&x| x.0 >= 0.0)
 }
 
 impl World {
@@ -53,8 +53,8 @@ impl World {
             direction: v.normalize()
         };
 
-        match hit(self.intersections(&r)) {
-            Some((dst, _)) => dst < v.magnitude(),
+        match hit(self.intersections(&r).as_slice()) {
+            Some((dst, _)) => dst < &v.magnitude(),
             None => false
         }
     }
@@ -88,8 +88,8 @@ impl World {
     }
 
     pub fn color_at(&self, ray: &Ray) -> Color {
-        match hit(self.intersections(ray)) {
-            Some((dst, obj)) => self.shade(ray, dst, Rc::clone(&obj)),
+        match hit(self.intersections(ray).as_slice()) {
+            Some((dst, obj)) => self.shade(ray, *dst, Rc::clone(&obj)),
             None => Color::BLACK
         }
     }
