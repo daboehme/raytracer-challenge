@@ -6,6 +6,7 @@ mod color;
 mod config;
 mod lighting;
 mod linalg;
+mod pattern;
 mod plane;
 mod ray;
 mod sceneparser;
