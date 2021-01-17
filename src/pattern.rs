@@ -1,7 +1,9 @@
 use crate::color::Color;
 use crate::linalg::{M4,V4};
 
-pub trait Pattern {
+use std::rc::Rc;
+
+pub trait Pattern: std::fmt::Debug {
     fn color_at(&self, p: V4) -> Color;
 }
 
@@ -24,15 +26,23 @@ impl Pattern for Solid {
 }
 
 
+#[derive(Clone,Debug)]
 pub struct TransformedPattern {
-    pattern: Box<dyn Pattern>,
+    pattern: Rc<dyn Pattern>,
     transform_i: M4
 }
 
 impl TransformedPattern {
     pub fn new<T: Pattern + 'static>(p: T, m: &M4) -> TransformedPattern {
         TransformedPattern {
-            pattern: Box::new(p),
+            pattern: Rc::new(p),
+            transform_i: m.invert()
+        }
+    }
+
+    pub fn new_from_rc(p: Rc<dyn Pattern>, m: &M4) -> TransformedPattern {
+        TransformedPattern {
+            pattern: p,
             transform_i: m.invert()
         }
     }

@@ -108,6 +108,7 @@ impl World {
 mod tests {
     use crate::camera::Camera;
     use crate::linalg::V4;
+    use crate::material::{Material,Texture};
     use crate::sphere::Sphere;
     use crate::lighting::*;
     use crate::transform::Transform;
@@ -125,7 +126,7 @@ mod tests {
 
         let t = Transform::new();
         let m = Material {
-            color: Color::new(0.8, 1.0, 0.6),
+            texture: Texture::Color(Color::new(0.8, 1.0, 0.6)),
             ambient: 0.1,
             diffuse: 0.7,
             specular: 0.2,
@@ -136,7 +137,7 @@ mod tests {
 
         let t = Transform::new().scale(0.5, 0.5, 0.5);
         let m = Material {
-            color: Color::WHITE,
+            texture: Texture::Color(Color::WHITE),
             ambient: 0.1,
             diffuse: 0.9,
             specular: 0.9,

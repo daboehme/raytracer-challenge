@@ -1,7 +1,9 @@
 use crate::camera::Camera;
 use crate::color::Color;
 use crate::linalg::{M4,V4};
-use crate::lighting::{LightSource,Material};
+use crate::lighting::LightSource;
+use crate::material::{Material,Texture};
+use crate::pattern::Stripes;
 use crate::plane::Plane;
 use crate::shape::{BaseShape,Shape};
 use crate::sphere::Sphere;
@@ -182,10 +184,51 @@ fn read_lights(node: &Yaml) -> Result<Vec<LightSource>> {
     Ok(lights)
 }
 
-fn read_material(node: &Yaml) -> Result<Material> {
-    let col = match read_v3(&node["color"]) {
+fn read_stripe_pattern(node: &Yaml) -> Result<Texture> {
+    let a = match read_v3(&node["a"]) {
         Ok(v) => v,
-        Err(e) => return Err(ParseError::In("color", e).into())
+        Err(e) => return Err(ParseError::In("a", e).into())
+    };
+    let b = match read_v3(&node["b"]) {
+        Ok(v) => v,
+        Err(e) => return Err(ParseError::In("b", e).into())
+    };
+
+    let a = Color::new(a[0], a[1], a[2]);
+    let b = Color::new(b[0], b[1], b[2]);
+
+    Ok(Texture::Pattern(Rc::new(Stripes::new(a, b))))
+}
+
+fn read_texture(node: &Yaml) -> Result<Texture> {
+    match node {
+        Yaml::Hash(kv) => {
+            match kv.iter().next() {
+                Some((key,val)) => {
+                    let key = key.as_str().unwrap();
+                    match key {
+                        "color" => {
+                            let col = read_v3(val)?;
+                            Ok(Texture::Color(Color::new(col[0], col[1], col[2])))
+                        },
+                        "stripes" => {
+                            return read_stripe_pattern(val)
+                        }
+                        _ => return Err(ParseError::UnknownValue(String::from(key)).into())
+                    }
+                },
+                None => return Err(ParseError::Missing.into())
+            }
+        },
+        Yaml::BadValue => return Err(ParseError::Missing.into()),
+        _ => return Err(ParseError::WrongType("dict").into())
+    }
+}
+
+fn read_material(node: &Yaml) -> Result<Material> {
+    let texture = match read_texture(&node["texture"]) {
+        Ok(v) => v,
+        Err(e) => return Err(ParseError::In("texture", e).into())
     };
     let ambient = match read_f32(&node["ambient"]) {
         Ok(v) => v,
@@ -197,7 +240,7 @@ fn read_material(node: &Yaml) -> Result<Material> {
     };
     let specular = match read_f32(&node["specular"]) {
         Ok(v) => v,
-        Err(e) => return Err(ParseError::In("ambient", e).into())
+        Err(e) => return Err(ParseError::In("specular", e).into())
     };
     let shininess = match read_f32(&node["shininess"]) {
         Ok(v) => v,
@@ -205,7 +248,7 @@ fn read_material(node: &Yaml) -> Result<Material> {
     };
 
     Ok( Material {
-        color: Color::new(col[0], col[1], col[2]),
+        texture: texture,
         ambient: ambient,
         diffuse: diffuse,
         specular: specular,
@@ -381,7 +424,8 @@ whatever: 42
     fn read_material_ok() {
         let s =
 "
-color: [ 1.0, 1.0, 1.0 ]
+texture:
+  color: [ 1.0, 1.0, 1.0 ]
 ambient: 0.2
 diffuse: 0.7
 specular: 0.2
@@ -391,12 +435,41 @@ shininess: 100.0
         let docs = YamlLoader::load_from_str(&s).unwrap();
 
         let mat = read_material(&docs[0]).unwrap();
+        let col = match mat.texture {
+            Texture::Color(c) => c,
+            _ => panic!("material texture is not a color")
+        };
 
-        assert_eq!(mat.color, Color::WHITE);
+        assert_eq!(col, Color::WHITE);
         assert_eq!(mat.ambient, 0.2);
         assert_eq!(mat.shininess, 100.0);
     }
 
+    #[test]
+    fn read_material_with_stripes_ok() {
+        let s =
+"
+texture:
+  stripes:
+    a: [ 1.0, 1.0, 1.0 ]
+    b: [ 0.0, 0.0, 0.0 ]
+ambient: 0.2
+diffuse: 0.7
+specular: 0.2
+shininess: 100.0
+";
+
+        let docs = YamlLoader::load_from_str(&s).unwrap();
+
+        let mat = read_material(&docs[0]).unwrap();
+        match mat.texture {
+            Texture::Pattern(p) => assert_eq!(p.color_at(V4::new_point(0.5, 0.0, 0.0)), Color::WHITE),
+            _ => panic!("material texture is not a pattern")
+        };
+
+        assert_eq!(mat.ambient, 0.2);
+        assert_eq!(mat.shininess, 100.0);
+    }
     #[test]
     fn read_transformations_ok() {
         let s =
@@ -424,14 +497,16 @@ shininess: 100.0
 "
 - plane:
     material:
-      color: [ 0.1, 0.3, 0.7 ]
+      texture:
+        color: [ 0.1, 0.3, 0.7 ]
       ambient: 0.3
       diffuse: 0.7
       specular: 0.2
       shininess: 20.0
 - sphere:
     material:
-      color: [ 0.2, 0.7, 0.4 ]
+      texture:
+        color: [ 0.2, 0.7, 0.4 ]
       ambient: 0.2
       diffuse: 0.7
       specular: 0.2
@@ -454,7 +529,8 @@ shininess: 100.0
         let s =
 "
 .mat.a:
-   color: [ 0.1, 0.3, 0.7 ]
+   texture:
+     color: [ 0.1, 0.3, 0.7 ]
    ambient: 0.3
    diffuse: 0.7
    specular: 0.2

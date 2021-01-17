@@ -6,6 +6,7 @@ mod color;
 mod config;
 mod lighting;
 mod linalg;
+mod material;
 mod pattern;
 mod plane;
 mod ray;

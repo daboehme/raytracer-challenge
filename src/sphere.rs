@@ -35,14 +35,14 @@ impl BaseShape for Sphere {
 mod tests {
     use super::*;
     use crate::color::Color;
-    use crate::lighting::Material;
+    use crate::material::{Material,Texture};
     use crate::linalg::{M4,V4};
     use crate::transform::Transform;
     use crate::shape::Shape;
     use float_cmp::*;
 
     const DEFAULT_MAT: Material = Material {
-        color: Color { r: 1.0, g: 0.2, b: 1.0 },
+        texture: Texture::Color(Color { r: 1.0, g: 0.2, b: 1.0 }),
         ambient: 0.1,
         diffuse: 0.9,
         specular: 0.9,

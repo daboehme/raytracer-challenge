@@ -1,4 +1,4 @@
-use crate::lighting::Material;
+use crate::material::Material;
 use crate::linalg::{M4,V4};
 use crate::ray::Ray;
 
@@ -22,7 +22,7 @@ impl Shape {
             base: shape,
             transform_i: t_i,
             transform_i_t: t_i.transpose(),
-            material: *mat
+            material: Material::new_transformed(mat, trans)
         }
     }
 
@@ -47,6 +47,7 @@ mod tests {
     use super::*;
 
     use crate::color::Color;
+    use crate::material::Texture;
     use crate::transform::Transform;
 
     use float_cmp::*;
@@ -55,7 +56,7 @@ mod tests {
     use std::cell::RefCell;
 
     const DEFAULT_MAT: Material = Material {
-        color: Color { r: 1.0, g: 0.2, b: 1.0 },
+        texture: Texture::Color(Color { r: 1.0, g: 0.2, b: 1.0 }),
         ambient: 0.1,
         diffuse: 0.9,
         specular: 0.9,

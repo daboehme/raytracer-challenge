@@ -1,14 +1,6 @@
 use crate::color::Color;
+use crate::material::Material;
 use crate::linalg::V4;
-
-#[derive(Clone,Copy,Debug)]
-pub struct Material {
-    pub color: Color,
-    pub ambient: f32,
-    pub diffuse: f32,
-    pub specular: f32,
-    pub shininess: f32
-}
 
 #[derive(Clone,Copy,Debug)]
 pub struct LightSource {
@@ -26,7 +18,7 @@ pub fn lighting
         in_shadow: bool
     ) -> V4
 {
-    let mc = material.color;
+    let mc = material.color_at(*point);
     let lc = light.intensity;
     let colorv = V4::new_vector(mc.r*lc.r, mc.g*lc.g, mc.b*lc.b);
 
@@ -58,11 +50,12 @@ pub fn lighting
 
 #[cfg(test)]
 mod tests {
+    use crate::material::Texture;
     use super::*;
     use float_cmp::*;
 
     const MATERIAL : Material = Material {
-        color: Color::WHITE,
+        texture: Texture::Color(Color::WHITE),
         ambient: 0.1,
         diffuse: 0.9,
         specular: 0.9,
