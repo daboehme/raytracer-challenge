@@ -96,6 +96,16 @@ fn read_f32(node: &Yaml) -> Result<f32> {
     Ok(val)
 }
 
+fn read_f32_or(node: &Yaml, default: f32) -> Result<f32> {
+    let val = match node {
+        Yaml::Real(s) => s.parse::<f32>()?,
+        Yaml::BadValue => default,
+        _ => return Err(ParseError::WrongType(TYPE_F32).into())
+    };
+
+    Ok(val)
+}
+
 fn read_camera(node: &Yaml) -> Result<Camera> {
     let mut width_height = [ ("width", 0), ("height", 0) ];
     for elem in width_height.iter_mut() {
@@ -265,13 +275,18 @@ fn read_material(node: &Yaml) -> Result<Material> {
         Ok(v) => v,
         Err(e) => return Err(ParseError::In("shininess", e).into())
     };
+    let reflective = match read_f32_or(&node["reflective"], 0.0) {
+        Ok(v) => v,
+        Err(e) => return Err(ParseError::In("reflective", e).into())
+    };
 
     Ok( Material {
         texture: texture,
         ambient: ambient,
         diffuse: diffuse,
         specular: specular,
-        shininess: shininess
+        shininess: shininess,
+        reflective: reflective
     })
 }
 
@@ -553,6 +568,7 @@ shininess: 100.0
       diffuse: 0.7
       specular: 0.2
       shininess: 200.0
+      reflective: 0.5
     transformations:
       - translate: [ 1.0, 2.0, -3.0 ]
 ";
@@ -563,7 +579,9 @@ shininess: 100.0
 
         assert_eq!(shapes.len(), 2);
         assert_eq!(shapes[0].material().ambient, 0.3);
+        assert_eq!(shapes[0].material().reflective, 0.0);
         assert_eq!(shapes[1].material().shininess, 200.0);
+        assert_eq!(shapes[1].material().reflective, 0.5);
     }
 
     #[test]

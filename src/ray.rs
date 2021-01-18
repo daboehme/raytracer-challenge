@@ -7,6 +7,13 @@ pub struct Ray {
 }
 
 impl Ray {
+    pub fn new(orig: V4, dir: V4) -> Ray {
+        Ray {
+            origin: orig,
+            direction: dir
+        }
+    }
+
     pub fn apply(&self, m: &M4) -> Ray {
         Ray {
             origin: m * self.origin,
@@ -28,11 +35,7 @@ mod tests {
     #[test]
     fn transform() {
         let trans = Transform::new().translate(3.0, 4.0, 5.0);
-
-        let ray = Ray {
-            origin: V4::new_point(1.0, 2.0, 3.0),
-            direction: V4::new_vector(0.0, 1.0, 0.0)
-        };
+        let ray = Ray::new(V4::new_point(1.0, 2.0, 3.0), V4::new_vector(0.0, 1.0, 0.0));
 
         let rt = ray.apply(&trans.matrix);
 

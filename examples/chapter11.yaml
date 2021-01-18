@@ -9,6 +9,7 @@
   diffuse: 0.7
   specular: 0.1
   shininess: 20.0
+  reflective: 0.2
 
 .mat.green.shiny:
   texture:

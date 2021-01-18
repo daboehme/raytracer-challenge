@@ -9,7 +9,9 @@ use std::rc::Rc;
 
 pub struct World {
     lights: Vec<LightSource>,
-    shapes: Vec< Rc<Shape> >
+    shapes: Vec< Rc<Shape> >,
+
+    max_recursion: u32
 }
 
 type Intersection = (f32, Rc<Shape>);
@@ -22,14 +24,16 @@ impl World {
     pub fn new() -> World {
         World {
             lights: vec![],
-            shapes: vec![]
+            shapes: vec![],
+            max_recursion: 5
         }
     }
 
     pub fn new_with(lights: Vec<LightSource>, shapes: Vec<Rc<Shape>>) -> World {
         World {
             lights: lights,
-            shapes: shapes
+            shapes: shapes,
+            max_recursion: 5
         }
     }
 
@@ -59,7 +63,7 @@ impl World {
         }
     }
 
-    fn shade(&self, ray: &Ray, hit: f32, obj: Rc<Shape>) -> Color {
+    fn shade(&self, ray: &Ray, hit: f32, obj: &Shape, recurse: u32) -> V4 {
         let point = ray.position(hit);
         let eyev  = -ray.direction;
         let mut normalv = obj.normal_at(point);
@@ -68,30 +72,44 @@ impl World {
             normalv = -normalv
         }
 
-        let over_point = point + normalv * 0.001;
+        // push point in direction of normal to avoid peppering
+        let point = point + normalv * 0.0001;
+
+        let material = obj.material();
 
         let mut colorv = V4::from(Color::BLACK);
 
         for light in self.lights.iter() {
             colorv +=
                 lighting::lighting(
-                    obj.material(),
+                    material,
                     light,
                     &point,
                     &eyev,
                     &normalv,
-                    self.is_shadowed(light, &over_point)
+                    self.is_shadowed(light, &point)
                 );
         }
 
-        Color::from(colorv)
+        if recurse > 0 && material.reflective > 0.0 {
+            let rfl_ray = Ray::new(point, V4::reflect(ray.direction, normalv));
+            let rfl_clr = self.recursive_color_at(&rfl_ray, recurse-1);
+
+            colorv += rfl_clr * material.reflective;
+        }
+
+        colorv
+    }
+
+    fn recursive_color_at(&self, ray: &Ray, recurse: u32) -> V4 {
+        match hit(self.intersections(ray).as_slice()) {
+            Some((dst, obj)) => self.shade(ray, *dst, obj, recurse),
+            None => V4::from(Color::BLACK)
+        }
     }
 
     pub fn color_at(&self, ray: &Ray) -> Color {
-        match hit(self.intersections(ray).as_slice()) {
-            Some((dst, obj)) => self.shade(ray, *dst, Rc::clone(&obj)),
-            None => Color::BLACK
-        }
+        Color::from(self.recursive_color_at(ray, self.max_recursion))
     }
 
     pub fn add_shape(&mut self, obj: Rc<Shape>) {
@@ -111,10 +129,20 @@ mod tests {
     use crate::material::{Material,Texture};
     use crate::sphere::Sphere;
     use crate::lighting::*;
+    use crate::plane::Plane;
     use crate::transform::Transform;
 
     use super::*;
     use float_cmp::*;
+
+    const MATERIAL : Material = Material {
+        texture: Texture::Color(Color::WHITE),
+        ambient: 0.1,
+        diffuse: 0.9,
+        specular: 0.9,
+        shininess: 200.0,
+        reflective: 0.0
+    };
 
     fn make_world() -> World {
         let mut w = World::new();
@@ -130,7 +158,8 @@ mod tests {
             ambient: 0.1,
             diffuse: 0.7,
             specular: 0.2,
-            shininess: 200.0
+            shininess: 200.0,
+            reflective: 0.0
         };
 
         w.shapes.push(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
@@ -141,7 +170,8 @@ mod tests {
             ambient: 0.1,
             diffuse: 0.9,
             specular: 0.9,
-            shininess: 200.0
+            shininess: 200.0,
+            reflective: 0.0
         };
 
         w.shapes.push(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
@@ -170,12 +200,9 @@ mod tests {
     #[test]
     fn shade_hit() {
         let w = make_world();
-        let r = Ray {
-            origin: V4::new_point(0.0, 0.0, -5.0),
-            direction: V4::new_vector(0.0, 0.0, 1.0)
-        };
+        let r = Ray::new(V4::new_point(0.0, 0.0, -5.0), V4::new_vector(0.0, 0.0, 1.0));
 
-        let c = w.shade(&r, 4.0, Rc::clone(&w.shapes[0]));
+        let c = Color::from(w.shade(&r, 4.0, &w.shapes[0], 1));
 
         assert!(approx_eq!(f32, c.r, 0.38066, epsilon = 0.0001));
         assert!(approx_eq!(f32, c.g, 0.47583, epsilon = 0.0001));
@@ -187,12 +214,8 @@ mod tests {
         let mut w = make_world();
         w.lights[0].pos = V4::new_point(0.0, 0.25, 0.0);
 
-        let r = Ray {
-            origin: V4::new_point(0.0, 0.0, 0.0),
-            direction: V4::new_vector(0.0, 0.0, 1.0)
-        };
-
-        let c = w.shade(&r, 0.5, Rc::clone(&w.shapes[1]));
+        let r = Ray::new(V4::new_point(0.0, 0.0, 0.0), V4::new_vector(0.0, 0.0, 1.0));
+        let c = Color::from(w.shade(&r, 0.5, &w.shapes[1], 1));
 
         assert!(approx_eq!(f32, c.r, 0.90498, epsilon = 0.0001));
         assert!(approx_eq!(f32, c.g, 0.90498, epsilon = 0.0001));
@@ -202,10 +225,7 @@ mod tests {
     #[test]
     fn color_miss() {
         let w = make_world();
-        let r = Ray {
-            origin: V4::new_point(0.0, 0.0, -5.0),
-            direction: V4::new_vector(0.0, 1.0, 0.0)
-        };
+        let r = Ray::new(V4::new_point(0.0, 0.0, -5.0), V4::new_vector(0.0, 1.0, 0.0));
 
         assert_eq!(w.color_at(&r), Color::BLACK);
     }
@@ -253,5 +273,52 @@ mod tests {
 
         let p = V4::new_point(-2.0, 2.0, -2.0);
         assert!(!w.is_shadowed(&w.lights.first().unwrap(), &p));
+    }
+
+    #[test]
+    fn shade_with_reflection() {
+        let mut w = make_world();
+
+        let mut m = MATERIAL;
+        m.reflective = 0.5;
+
+        let t = Transform::new().translate(0.0, -1.0, 0.0);
+        let s = Rc::new(Shape::new(Box::new(Plane()), &m, &t.matrix));
+        w.add_shape(Rc::clone(&s));
+
+        let sqrth = std::f32::consts::SQRT_2 * 0.5;
+
+        let r = Ray::new(V4::new_point(0.0, 0.0, -3.0), V4::new_vector(0.0, -sqrth, sqrth));
+
+        let c = w.shade(&r, std::f32::consts::SQRT_2, &s, 4);
+
+        assert!(approx_eq!(V4, c, V4::new_vector(0.87677, 0.92436, 0.82918), epsilon = 0.0001));
+    }
+
+    #[test]
+    fn recursion_limit() {
+        let mut m = MATERIAL;
+        m.reflective = 1.0;
+
+        let tl = Transform::new().translate(0.0, -1.0, 0.0);
+        let tu = Transform::new().translate(0.0,  1.0, 0.0);
+
+        let l = LightSource {
+            pos: V4::new_point(0.0, 0.0, 0.0),
+            intensity: Color::WHITE
+        };
+
+        let shapes = vec![
+            Rc::new(Shape::new(Box::new(Plane()), &m, &tl.matrix)),
+            Rc::new(Shape::new(Box::new(Plane()), &m, &tu.matrix))
+        ];
+
+        let w = World::new_with(vec![l], shapes);
+        let r = Ray::new(V4::new_point(0.0, 0.0, 0.0), V4::new_vector(0.0, 1.0, 0.0));
+
+        // should not infinitely recurse
+        let c = w.color_at(&r);
+
+        assert_ne!(c, Color::BLACK);
     }
 }
