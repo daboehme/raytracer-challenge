@@ -3,7 +3,7 @@ use crate::color::Color;
 use crate::linalg::{M4,V4};
 use crate::lighting::LightSource;
 use crate::material::{Material,Texture};
-use crate::pattern::Stripes;
+use crate::pattern::{Checkerboard,Pattern,Ring,Stripes,TransformedPattern};
 use crate::plane::Plane;
 use crate::shape::{BaseShape,Shape};
 use crate::sphere::Sphere;
@@ -184,7 +184,11 @@ fn read_lights(node: &Yaml) -> Result<Vec<LightSource>> {
     Ok(lights)
 }
 
-fn read_stripe_pattern(node: &Yaml) -> Result<Texture> {
+fn read_2col_pattern<F,P>(node: &Yaml, new: F) -> Result<Texture>
+where
+    P: Pattern + 'static,
+    F: Fn(Color,Color) -> P
+{
     let a = match read_v3(&node["a"]) {
         Ok(v) => v,
         Err(e) => return Err(ParseError::In("a", e).into())
@@ -197,7 +201,16 @@ fn read_stripe_pattern(node: &Yaml) -> Result<Texture> {
     let a = Color::new(a[0], a[1], a[2]);
     let b = Color::new(b[0], b[1], b[2]);
 
-    Ok(Texture::Pattern(Rc::new(Stripes::new(a, b))))
+    let p = Rc::new(new(a, b));
+
+    match &node["transformations"] {
+        Yaml::Array(v) => {
+            let t = read_transformations(&v)?;
+            Ok(Texture::Pattern(Rc::new(TransformedPattern::new_from_rc(p, &t))))
+        }
+        Yaml::BadValue => Ok(Texture::Pattern(p)),
+        _ => Err(ParseError::WrongTypeFor("transformations", "array").into())
+    }
 }
 
 fn read_texture(node: &Yaml) -> Result<Texture> {
@@ -212,8 +225,14 @@ fn read_texture(node: &Yaml) -> Result<Texture> {
                             Ok(Texture::Color(Color::new(col[0], col[1], col[2])))
                         },
                         "stripes" => {
-                            return read_stripe_pattern(val)
-                        }
+                            return read_2col_pattern(val, Stripes::new)
+                        },
+                        "checkerboard" => {
+                            return read_2col_pattern(val, Checkerboard::new)
+                        },
+                        "ring" => {
+                            return read_2col_pattern(val, Ring::new)
+                        },
                         _ => return Err(ParseError::UnknownValue(String::from(key)).into())
                     }
                 },
@@ -418,6 +437,29 @@ whatever: 42
         assert_eq!(lights.len(), 2);
         assert_eq!(lights[0].pos, V4::new_point(4.0, 5.5, -6.0));
         assert_eq!(lights[1].intensity, Color::WHITE);
+    }
+
+    #[test]
+    fn read_texture_transformation_ok() {
+        let s =
+"
+texture:
+  stripes:
+    transformations:
+      - scale: [ 0.5, 0.5, 0.5 ]
+    a: [ 1.0, 1.0, 1.0 ]
+    b: [ 0.0, 0.0, 0.0 ]
+";
+
+        let docs = YamlLoader::load_from_str(&s).unwrap();
+        let texture = read_texture(&docs[0]["texture"]).unwrap();
+
+        match texture {
+            Texture::Pattern(p) => {
+                assert_eq!(p.color_at(V4::new_point(0.6, 0.0, 0.0)), Color::BLACK)
+            }
+            _ => panic!("texture is not a pattern")
+        }
     }
 
     #[test]

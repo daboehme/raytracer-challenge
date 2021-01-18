@@ -78,6 +78,52 @@ impl Pattern for Stripes {
 }
 
 
+#[derive(Copy,Clone,Debug,PartialEq)]
+pub struct Checkerboard {
+    a: Color,
+    b: Color
+}
+
+impl Checkerboard {
+    pub fn new(a: Color, b: Color) -> Checkerboard {
+        Checkerboard { a: a, b: b }
+    }
+}
+
+impl Pattern for Checkerboard {
+    fn color_at(&self, p: V4) -> Color {
+        if ((p.x().floor() + p.y().floor() + p.z().floor()) as i32) % 2 == 0 {
+            self.a
+        } else {
+            self.b
+        }
+    }
+}
+
+
+#[derive(Copy,Clone,Debug,PartialEq)]
+pub struct Ring {
+    a: Color,
+    b: Color
+}
+
+impl Ring {
+    pub fn new(a: Color, b: Color) -> Ring {
+        Ring { a: a, b: b }
+    }
+}
+
+impl Pattern for Ring {
+    fn color_at(&self, p: V4) -> Color {
+        if ((p.x()*p.x() + p.z()*p.z()).sqrt().floor() as i32) % 2 == 0 {
+            self.a
+        } else {
+            self.b
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use crate::transform::Transform;
@@ -101,6 +147,32 @@ mod tests {
         assert_eq!(s.color_at(V4::new_point(-0.1, 0.0, 0.0)), Color::BLACK);
         assert_eq!(s.color_at(V4::new_point(-1.0, 0.0, 0.0)), Color::BLACK);
         assert_eq!(s.color_at(V4::new_point(-1.1, 0.0, 0.0)), Color::WHITE);
+    }
+
+    #[test]
+    fn checkerboard() {
+        let c = Checkerboard::new(Color::WHITE, Color::BLACK);
+
+        assert_eq!(c.color_at(V4::new_point(0.0,  0.0, 0.0)), Color::WHITE);
+        assert_eq!(c.color_at(V4::new_point(0.99, 0.0, 0.0)), Color::WHITE);
+        assert_eq!(c.color_at(V4::new_point(1.01, 0.0, 0.0)), Color::BLACK);
+
+        assert_eq!(c.color_at(V4::new_point(0.0, 0.99, 0.0)), Color::WHITE);
+        assert_eq!(c.color_at(V4::new_point(0.0, 1.01, 0.0)), Color::BLACK);
+
+        assert_eq!(c.color_at(V4::new_point(0.0, 0.0, 0.99)), Color::WHITE);
+        assert_eq!(c.color_at(V4::new_point(0.0, 0.0, 1.01)), Color::BLACK);
+    }
+
+    #[test]
+    fn ring() {
+        let c = Ring::new(Color::WHITE, Color::BLACK);
+
+        assert_eq!(c.color_at(V4::new_point(0.0,  0.0, 0.0)), Color::WHITE);
+        assert_eq!(c.color_at(V4::new_point(1.0, 0.0, 0.0)), Color::BLACK);
+        assert_eq!(c.color_at(V4::new_point(0.0, 0.0, 1.0)), Color::BLACK);
+
+        assert_eq!(c.color_at(V4::new_point(0.708, 0.0, 0.708)), Color::BLACK);
     }
 
     #[derive(Copy,Clone,Debug)]
