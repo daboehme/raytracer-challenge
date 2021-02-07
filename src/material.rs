@@ -17,7 +17,9 @@ pub struct Material {
     pub diffuse: f32,
     pub specular: f32,
     pub shininess: f32,
-    pub reflective: f32
+    pub reflective: f32,
+    pub transparency: f32,
+    pub refractive_index: f32
 }
 
 impl Material {

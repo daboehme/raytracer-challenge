@@ -11,7 +11,7 @@ pub struct World {
     lights: Vec<LightSource>,
     shapes: Vec< Rc<Shape> >,
 
-    max_recursion: u32
+    max_depth: u32
 }
 
 type Intersection = (f32, Rc<Shape>);
@@ -20,12 +20,43 @@ fn hit(xs: &[Intersection]) -> Option<&Intersection> {
     xs.iter().find(|&x| x.0 >= 0.0)
 }
 
+fn refraction_index_pair(hit: &Intersection, xs: &[Intersection]) -> (f32,f32) {
+    let mut n1 = 1.0;
+    let mut n2 = 1.0;
+
+    let mut containers: Vec<Rc<Shape>> = Vec::new();
+
+    for i in xs.iter() {
+        if i.0 == hit.0 {
+            n1 = match containers.last() {
+                Some(obj) => obj.material().refractive_index,
+                None => 1.0
+            };
+        }
+
+        match containers.iter().position(|x| Rc::ptr_eq(&x, &i.1)) {
+            Some(p) => { containers.remove(p); () },
+            None => containers.push(Rc::clone(&i.1))
+        }
+
+        if i.0 == hit.0 {
+            n2 = match containers.last() {
+                Some(obj) => obj.material().refractive_index,
+                None => 1.0
+            };
+            break
+        }
+    }
+
+    (n1,n2)
+}
+
 impl World {
     pub fn new() -> World {
         World {
             lights: vec![],
             shapes: vec![],
-            max_recursion: 5
+            max_depth: 5
         }
     }
 
@@ -33,7 +64,7 @@ impl World {
         World {
             lights: lights,
             shapes: shapes,
-            max_recursion: 5
+            max_depth: 5
         }
     }
 
@@ -73,7 +104,7 @@ impl World {
         }
 
         // push point in direction of normal to avoid peppering
-        let point = point + normalv * 0.0001;
+        let opoint = point + normalv * 0.0001;
 
         let material = obj.material();
 
@@ -84,18 +115,20 @@ impl World {
                 lighting::lighting(
                     material,
                     light,
-                    &point,
+                    &opoint,
                     &eyev,
                     &normalv,
-                    self.is_shadowed(light, &point)
+                    self.is_shadowed(light, &opoint)
                 );
         }
 
-        if recurse > 0 && material.reflective > 0.0 {
-            let rfl_ray = Ray::new(point, V4::reflect(ray.direction, normalv));
-            let rfl_clr = self.recursive_color_at(&rfl_ray, recurse-1);
+        if recurse > 0 {
+            if material.reflective > 0.0 {
+                let rfl_ray = Ray::new(opoint, V4::reflect(ray.direction, normalv));
+                let rfl_clr = self.recursive_color_at(&rfl_ray, recurse-1);
 
-            colorv += rfl_clr * material.reflective;
+                colorv += rfl_clr * material.reflective;
+            }
         }
 
         colorv
@@ -109,7 +142,7 @@ impl World {
     }
 
     pub fn color_at(&self, ray: &Ray) -> Color {
-        Color::from(self.recursive_color_at(ray, self.max_recursion))
+        Color::from(self.recursive_color_at(ray, self.max_depth))
     }
 
     pub fn add_shape(&mut self, obj: Rc<Shape>) {
@@ -141,7 +174,9 @@ mod tests {
         diffuse: 0.9,
         specular: 0.9,
         shininess: 200.0,
-        reflective: 0.0
+        reflective: 0.0,
+        transparency: 0.0,
+        refractive_index: 1.0
     };
 
     fn make_world() -> World {
@@ -159,7 +194,9 @@ mod tests {
             diffuse: 0.7,
             specular: 0.2,
             shininess: 200.0,
-            reflective: 0.0
+            reflective: 0.0,
+            transparency: 0.0,
+            refractive_index: 1.0
         };
 
         w.shapes.push(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
@@ -171,7 +208,9 @@ mod tests {
             diffuse: 0.9,
             specular: 0.9,
             shininess: 200.0,
-            reflective: 0.0
+            reflective: 0.0,
+            transparency: 0.0,
+            refractive_index: 1.0
         };
 
         w.shapes.push(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
@@ -320,5 +359,40 @@ mod tests {
         let c = w.color_at(&r);
 
         assert_ne!(c, Color::BLACK);
+    }
+
+    #[test]
+    fn refraction_index_pair() {
+        let mut m1 = MATERIAL;
+        m1.refractive_index = 1.5;
+        let mut m2 = MATERIAL;
+        m2.refractive_index = 2.0;
+        let mut m3 = MATERIAL;
+        m3.refractive_index = 2.5;
+
+        let t = Transform::new().scale(2.0, 2.0, 2.0);
+        let a = Rc::new(Shape::new(Box::new(Sphere()), &m1, &t.matrix));
+
+        let t = Transform::new().translate(0.0, 0.0, -0.25);
+        let b = Rc::new(Shape::new(Box::new(Sphere()), &m2, &t.matrix));
+
+        let t = Transform::new().translate(0.0, 0.0, 0.25);
+        let c = Rc::new(Shape::new(Box::new(Sphere()), &m3, &t.matrix));
+
+        let xs = vec![
+            (2.0,  Rc::clone(&a)),
+            (2.75, Rc::clone(&b)),
+            (3.25, Rc::clone(&c)),
+            (4.75, Rc::clone(&b)),
+            (5.25, Rc::clone(&c)),
+            (6.0,  Rc::clone(&a))
+        ];
+
+        assert_eq!(super::refraction_index_pair(&xs[0], &xs), (1.0, 1.5));
+        assert_eq!(super::refraction_index_pair(&xs[1], &xs), (1.5, 2.0));
+        assert_eq!(super::refraction_index_pair(&xs[2], &xs), (2.0, 2.5));
+        assert_eq!(super::refraction_index_pair(&xs[3], &xs), (2.5, 2.5));
+        assert_eq!(super::refraction_index_pair(&xs[4], &xs), (2.5, 1.5));
+        assert_eq!(super::refraction_index_pair(&xs[5], &xs), (1.5, 1.0));
     }
 }

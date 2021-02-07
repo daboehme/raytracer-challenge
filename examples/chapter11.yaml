@@ -1,8 +1,8 @@
 # definitions:
 
-.mat.blue.stripes:
+.mat.blue.checkerboard:
   texture:
-    stripes: 
+    checkerboard: 
       a: [ 0.2, 0.4, 0.8 ]
       b: [ 0.6, 0.8, 1.0 ]
   ambient: 0.2
@@ -18,6 +18,15 @@
   diffuse: 0.7
   specular: 0.3
   shininess: 200.0
+
+.mat.green.reflect:
+  texture:
+    color: [ 0.0, 0.25, 0.1 ]
+  ambient: 0.1
+  diffuse: 0.7
+  specular: 0.3
+  shininess: 200.0
+  reflective: 0.6
 
 .mat.red.ring:
   texture:
@@ -46,7 +55,7 @@ lights:
 
 shapes:
   - sphere:
-      material: .mat.green.shiny
+      material: .mat.green.reflect
       transformations:
         - translate: [ -0.5, 1.0, 0.5 ]
   - sphere:
@@ -60,4 +69,4 @@ shapes:
         - translate: [ -1.5, 0.33, -0.75 ]
         - scale: [ 0.35, 0.35, 0.35 ]
   - plane:
-      material: .mat.blue.stripes
+      material: .mat.blue.checkerboard

@@ -279,6 +279,14 @@ fn read_material(node: &Yaml) -> Result<Material> {
         Ok(v) => v,
         Err(e) => return Err(ParseError::In("reflective", e).into())
     };
+    let transparency = match read_f32_or(&node["transparency"], 0.0) {
+        Ok(v) => v,
+        Err(e) => return Err(ParseError::In("transparency", e).into())
+    };
+    let refractive_index = match read_f32_or(&node["refractive_index"], 1.0) {
+        Ok(v) => v,
+        Err(e) => return Err(ParseError::In("refractive_index", e).into())
+    };
 
     Ok( Material {
         texture: texture,
@@ -286,7 +294,9 @@ fn read_material(node: &Yaml) -> Result<Material> {
         diffuse: diffuse,
         specular: specular,
         shininess: shininess,
-        reflective: reflective
+        reflective: reflective,
+        transparency: transparency,
+        refractive_index: refractive_index
     })
 }
 
