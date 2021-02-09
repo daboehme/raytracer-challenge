@@ -7,17 +7,13 @@ use crate::shape::Shape;
 
 use std::rc::Rc;
 
-pub struct World {
-    lights: Vec<LightSource>,
-    shapes: Vec< Rc<Shape> >,
-
-    max_depth: u32
+struct Intersection {
+    distance: f32,
+    object: Rc<Shape>
 }
 
-type Intersection = (f32, Rc<Shape>);
-
 fn hit(xs: &[Intersection]) -> Option<&Intersection> {
-    xs.iter().find(|&x| x.0 >= 0.0)
+    xs.iter().find(|&x| x.distance >= 0.0)
 }
 
 fn refraction_index_pair(hit: &Intersection, xs: &[Intersection]) -> (f32,f32) {
@@ -27,19 +23,19 @@ fn refraction_index_pair(hit: &Intersection, xs: &[Intersection]) -> (f32,f32) {
     let mut containers: Vec<Rc<Shape>> = Vec::new();
 
     for i in xs.iter() {
-        if i.0 == hit.0 {
+        if i.distance == hit.distance {
             n1 = match containers.last() {
                 Some(obj) => obj.material().refractive_index,
                 None => 1.0
             };
         }
 
-        match containers.iter().position(|x| Rc::ptr_eq(&x, &i.1)) {
+        match containers.iter().position(|x| Rc::ptr_eq(&x, &i.object)) {
             Some(p) => { containers.remove(p); () },
-            None => containers.push(Rc::clone(&i.1))
+            None => containers.push(Rc::clone(&i.object))
         }
 
-        if i.0 == hit.0 {
+        if i.distance == hit.distance {
             n2 = match containers.last() {
                 Some(obj) => obj.material().refractive_index,
                 None => 1.0
@@ -49,6 +45,13 @@ fn refraction_index_pair(hit: &Intersection, xs: &[Intersection]) -> (f32,f32) {
     }
 
     (n1,n2)
+}
+
+pub struct World {
+    lights: Vec<LightSource>,
+    shapes: Vec< Rc<Shape> >,
+
+    max_depth: u32
 }
 
 impl World {
@@ -73,11 +76,11 @@ impl World {
 
         for shape in self.shapes.iter() {
             for t in shape.intersect(ray) {
-                xs.push( (t, Rc::clone(&shape)) )
+                xs.push( Intersection { distance: t, object: Rc::clone(&shape) } )
             }
         }
 
-        xs.sort_unstable_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        xs.sort_unstable_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap());
         xs
     }
 
@@ -89,15 +92,38 @@ impl World {
         };
 
         match hit(self.intersections(&r).as_slice()) {
-            Some((dst, _)) => dst < &v.magnitude(),
+            Some(i) => i.distance < v.magnitude(),
             None => false
         }
     }
 
-    fn shade(&self, ray: &Ray, hit: f32, obj: &Shape, recurse: u32) -> V4 {
-        let point = ray.position(hit);
+    fn refraction
+        (
+            &self,
+            hit: &Intersection,
+            xs: &[Intersection],
+            point: &V4,
+            normalv: &V4,
+            eyev: &V4,
+            recurse: u32
+        ) -> V4
+    {
+        let (n1,n2) = refraction_index_pair(hit, xs);
+        let n_ratio = n1 / n2;
+        let cos_i   = V4::dot(eyev, normalv);
+        let sin_2t  = n_ratio*n_ratio * (1.0 - cos_i*cos_i);
+
+        if sin_2t > 1.0 {
+            return V4::from(Color::BLACK)
+        }
+
+        V4::from(Color::WHITE)
+    }
+
+    fn shade(&self, ray: &Ray, hit: &Intersection, xs: &[Intersection], recurse: u32) -> V4 {
+        let point = ray.position(hit.distance);
         let eyev  = -ray.direction;
-        let mut normalv = obj.normal_at(point);
+        let mut normalv = hit.object.normal_at(point);
 
         if V4::dot(&normalv, &eyev) < 0.0 {
             normalv = -normalv
@@ -106,7 +132,7 @@ impl World {
         // push point in direction of normal to avoid peppering
         let opoint = point + normalv * 0.0001;
 
-        let material = obj.material();
+        let material = hit.object.material();
 
         let mut colorv = V4::from(Color::BLACK);
 
@@ -129,14 +155,22 @@ impl World {
 
                 colorv += rfl_clr * material.reflective;
             }
+
+            if material.transparency > 0.0 {
+                let upoint = point + (-normalv * 0.0001);
+
+                colorv += self.refraction(hit, xs, &upoint, &normalv, &eyev, recurse-1) * material.transparency
+            }
         }
 
         colorv
     }
 
     fn recursive_color_at(&self, ray: &Ray, recurse: u32) -> V4 {
-        match hit(self.intersections(ray).as_slice()) {
-            Some((dst, obj)) => self.shade(ray, *dst, obj, recurse),
+        let xs = self.intersections(ray);
+
+        match hit(xs.as_slice()) {
+            Some(i) => self.shade(ray, i, &xs, recurse),
             None => V4::from(Color::BLACK)
         }
     }
@@ -230,10 +264,10 @@ mod tests {
 
         assert_eq!(xs.len(), 4);
 
-        assert_eq!(xs[0].0, 4.0);
-        assert_eq!(xs[1].0, 4.5);
-        assert_eq!(xs[2].0, 5.5);
-        assert_eq!(xs[3].0, 6.0)
+        assert_eq!(xs[0].distance, 4.0);
+        assert_eq!(xs[1].distance, 4.5);
+        assert_eq!(xs[2].distance, 5.5);
+        assert_eq!(xs[3].distance, 6.0)
     }
 
     #[test]
@@ -241,7 +275,9 @@ mod tests {
         let w = make_world();
         let r = Ray::new(V4::new_point(0.0, 0.0, -5.0), V4::new_vector(0.0, 0.0, 1.0));
 
-        let c = Color::from(w.shade(&r, 4.0, &w.shapes[0], 1));
+        let xs = vec![ Intersection { distance: 4.0, object: Rc::clone(&w.shapes[0]) } ];
+
+        let c = Color::from(w.shade(&r, &xs[0], &xs, 1));
 
         assert!(approx_eq!(f32, c.r, 0.38066, epsilon = 0.0001));
         assert!(approx_eq!(f32, c.g, 0.47583, epsilon = 0.0001));
@@ -253,8 +289,10 @@ mod tests {
         let mut w = make_world();
         w.lights[0].pos = V4::new_point(0.0, 0.25, 0.0);
 
+        let xs = vec![ Intersection { distance: 0.5, object: Rc::clone(&w.shapes[1]) } ];
+
         let r = Ray::new(V4::new_point(0.0, 0.0, 0.0), V4::new_vector(0.0, 0.0, 1.0));
-        let c = Color::from(w.shade(&r, 0.5, &w.shapes[1], 1));
+        let c = Color::from(w.shade(&r, &xs[0], &xs, 1));
 
         assert!(approx_eq!(f32, c.r, 0.90498, epsilon = 0.0001));
         assert!(approx_eq!(f32, c.g, 0.90498, epsilon = 0.0001));
@@ -329,7 +367,9 @@ mod tests {
 
         let r = Ray::new(V4::new_point(0.0, 0.0, -3.0), V4::new_vector(0.0, -sqrth, sqrth));
 
-        let c = w.shade(&r, std::f32::consts::SQRT_2, &s, 4);
+        let xs = vec![ Intersection { distance: std::f32::consts::SQRT_2, object: s } ];
+
+        let c = w.shade(&r, &xs[0], &xs, 4);
 
         assert!(approx_eq!(V4, c, V4::new_vector(0.87677, 0.92436, 0.82918), epsilon = 0.0001));
     }
@@ -380,12 +420,12 @@ mod tests {
         let c = Rc::new(Shape::new(Box::new(Sphere()), &m3, &t.matrix));
 
         let xs = vec![
-            (2.0,  Rc::clone(&a)),
-            (2.75, Rc::clone(&b)),
-            (3.25, Rc::clone(&c)),
-            (4.75, Rc::clone(&b)),
-            (5.25, Rc::clone(&c)),
-            (6.0,  Rc::clone(&a))
+            Intersection { distance: 2.0,  object: Rc::clone(&a) },
+            Intersection { distance: 2.75, object: Rc::clone(&b) },
+            Intersection { distance: 3.25, object: Rc::clone(&c) },
+            Intersection { distance: 4.75, object: Rc::clone(&b) },
+            Intersection { distance: 5.25, object: Rc::clone(&c) },
+            Intersection { distance: 6.0,  object: Rc::clone(&a) }
         ];
 
         assert_eq!(super::refraction_index_pair(&xs[0], &xs), (1.0, 1.5));
@@ -394,5 +434,44 @@ mod tests {
         assert_eq!(super::refraction_index_pair(&xs[3], &xs), (2.5, 2.5));
         assert_eq!(super::refraction_index_pair(&xs[4], &xs), (2.5, 1.5));
         assert_eq!(super::refraction_index_pair(&xs[5], &xs), (1.5, 1.0));
+    }
+
+    #[test]
+    fn total_refract() {
+        let mut w = World::new();
+
+        w.lights.push( LightSource {
+                intensity: Color::WHITE,
+                pos: V4::new_point(-10.0, 10.0, -10.0)
+            } );
+
+        let t = Transform::new();
+        let m = Material {
+            texture: Texture::Color(Color::new(0.8, 1.0, 0.6)),
+            ambient: 0.1,
+            diffuse: 0.7,
+            specular: 0.2,
+            shininess: 200.0,
+            reflective: 0.0,
+            transparency: 1.0,
+            refractive_index: 1.5
+        };
+
+        w.shapes.push(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
+
+        let sqrt2half = 0.5 * std::f32::consts::SQRT_2;
+
+        let xs = vec![
+            Intersection { distance: -sqrt2half, object: Rc::clone(&w.shapes[0]) },
+            Intersection { distance:  sqrt2half, object: Rc::clone(&w.shapes[0]) }
+        ];
+
+        let ray = Ray::new(V4::new_point(0.0, 0.0, sqrt2half), -V4::new_vector(0.0, 1.0, 0.0));
+        let point = ray.position(xs[1].distance);
+        let eyev = -ray.direction;
+        let normalv = xs[1].object.normal_at(point);
+        let c = w.refraction(&xs[1], &xs, &point, &normalv, &eyev, 5);
+
+        assert_eq!(c, V4::from(Color::BLACK))
     }
 }
