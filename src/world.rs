@@ -102,22 +102,25 @@ impl World {
             &self,
             hit: &Intersection,
             xs: &[Intersection],
-            point: &V4,
-            normalv: &V4,
-            eyev: &V4,
+            point: V4,
+            normalv: V4,
+            eyev: V4,
             recurse: u32
         ) -> V4
     {
         let (n1,n2) = refraction_index_pair(hit, xs);
         let n_ratio = n1 / n2;
-        let cos_i   = V4::dot(eyev, normalv);
+        let cos_i   = V4::dot(&eyev, &normalv);
         let sin_2t  = n_ratio*n_ratio * (1.0 - cos_i*cos_i);
 
         if sin_2t > 1.0 {
             return V4::from(Color::BLACK)
         }
 
-        V4::from(Color::WHITE)
+        let cos_t = (1.0 - sin_2t).sqrt();
+        let direction = normalv * (n_ratio * cos_i - cos_t) - eyev * n_ratio;
+
+        self.recursive_color_at(&Ray::new(point, direction), recurse)
     }
 
     fn shade(&self, ray: &Ray, hit: &Intersection, xs: &[Intersection], recurse: u32) -> V4 {
@@ -157,9 +160,15 @@ impl World {
             }
 
             if material.transparency > 0.0 {
-                let upoint = point + (-normalv * 0.0001);
-
-                colorv += self.refraction(hit, xs, &upoint, &normalv, &eyev, recurse-1) * material.transparency
+                colorv +=
+                    self.refraction(
+                        hit,
+                        xs,
+                        point - normalv * 0.0001,
+                        normalv,
+                        eyev,
+                        recurse-1
+                    ) * material.transparency
             }
         }
 
@@ -196,6 +205,7 @@ mod tests {
     use crate::material::{Material,Texture};
     use crate::sphere::Sphere;
     use crate::lighting::*;
+    use crate::pattern::Pattern;
     use crate::plane::Plane;
     use crate::transform::Transform;
 
@@ -470,8 +480,126 @@ mod tests {
         let point = ray.position(xs[1].distance);
         let eyev = -ray.direction;
         let normalv = xs[1].object.normal_at(point);
-        let c = w.refraction(&xs[1], &xs, &point, &normalv, &eyev, 5);
+        let c = w.refraction(&xs[1], &xs, point, normalv, eyev, 5);
 
         assert_eq!(c, V4::from(Color::BLACK))
+    }
+
+
+    #[derive(Copy,Clone,Debug)]
+    struct TestPattern ();
+
+    impl Pattern for TestPattern {
+        fn color_at(&self, p: V4) -> Color {
+            Color::from(p)
+        }
+    }
+
+    #[test]
+    fn refraction() {
+        let mut w = World::new();
+
+        w.lights.push( LightSource {
+                intensity: Color::WHITE,
+                pos: V4::new_point(-10.0, 10.0, -10.0)
+            } );
+
+        let t = Transform::new();
+        let m = Material {
+            texture: Texture::Pattern(Rc::new(TestPattern())),
+            ambient: 1.0,
+            diffuse: 0.7,
+            specular: 0.2,
+            shininess: 200.0,
+            reflective: 0.0,
+            transparency: 0.0,
+            refractive_index: 1.0
+        };
+
+        w.shapes.push(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
+
+        let t = Transform::new().scale(0.5, 0.5, 0.5);
+        let m = Material {
+            texture: Texture::Color(Color::WHITE),
+            ambient: 0.1,
+            diffuse: 0.9,
+            specular: 0.9,
+            shininess: 200.0,
+            reflective: 0.0,
+            transparency: 1.0,
+            refractive_index: 1.5
+        };
+
+        w.shapes.push(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
+
+        let xs = vec![
+            Intersection { distance: -0.9899, object: Rc::clone(&w.shapes[0]) },
+            Intersection { distance: -0.4899, object: Rc::clone(&w.shapes[1]) },
+            Intersection { distance:  0.4899, object: Rc::clone(&w.shapes[1]) },
+            Intersection { distance:  0.9899, object: Rc::clone(&w.shapes[0]) }
+        ];
+
+        let ray = Ray::new(V4::new_point(0.0, 0.0, 0.1), V4::new_vector(0.0, 1.0, 0.0));
+        let point = ray.position(xs[2].distance);
+        let eyev = -ray.direction;
+        let mut normalv = xs[2].object.normal_at(point);
+
+        if V4::dot(&normalv, &eyev) < 0.0 {
+            normalv = -normalv
+        }
+
+        let c = w.refraction(&xs[2], &xs, point - normalv * 0.0001, normalv, eyev, 5);
+
+        assert!(approx_eq!(V4, c, V4::new_vector(0.0, 0.99888, 0.04725), epsilon = 0.0001))
+    }
+
+
+    #[test]
+    fn shade_with_refraction() {
+        let mut w = World::new();
+
+        w.lights.push( LightSource {
+                intensity: Color::WHITE,
+                pos: V4::new_point(-10.0, 10.0, -10.0)
+            } );
+
+        let t = Transform::new().translate(0.0, -1.0, 0.0);
+        let m = Material {
+            texture: Texture::Color(Color::WHITE),
+            ambient: 0.1,
+            diffuse: 0.9,
+            specular: 0.9,
+            shininess: 200.0,
+            reflective: 0.0,
+            transparency: 0.5,
+            refractive_index: 1.5
+        };
+
+        w.shapes.push(Rc::new(Shape::new(Box::new(Plane()), &m, &t.matrix)));
+
+        let t = Transform::new().translate(0.0, -3.5, -0.5);
+        let m = Material {
+            texture: Texture::Color(Color::RED),
+            ambient: 0.5,
+            diffuse: 0.9,
+            specular: 0.9,
+            shininess: 200.0,
+            reflective: 0.0,
+            transparency: 0.0,
+            refractive_index: 1.0
+        };
+
+        w.shapes.push(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
+
+        let xs = vec![
+            Intersection { distance: std::f32::consts::SQRT_2, object: Rc::clone(&w.shapes[0]) },
+        ];
+
+        let sqrt2half = 0.5 * std::f32::consts::SQRT_2;
+        let ray = Ray::new(V4::new_point(0.0, 0.0, -3.0), V4::new_vector(0.0, -sqrt2half, sqrt2half));
+
+        let c = w.shade(&ray, &xs[0], &xs, 5);
+
+        assert!(approx_eq!(V4, c, V4::new_vector(0.93642, 0.68642, 0.68642), epsilon = 0.0001))
     }
 }

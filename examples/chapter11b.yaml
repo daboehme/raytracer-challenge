@@ -1,0 +1,70 @@
+# definitions:
+
+.mat.blue.checkerboard:
+  texture:
+    checkerboard: 
+      a: [ 0.2, 0.4, 0.8 ]
+      b: [ 0.6, 0.8, 1.0 ]
+  ambient: 0.2
+  diffuse: 0.7
+  specular: 0.1
+  shininess: 20.0
+  reflective: 0.2
+
+.mat.green.shiny:
+  texture:
+    color: [ 0.1, 1.0, 0.5 ]
+  ambient: 0.1
+  diffuse: 0.7
+  specular: 0.3
+  shininess: 200.0
+
+.mat.green.reflect:
+  texture:
+    color: [ 0.0, 0.25, 0.1 ]
+  ambient: 0.1
+  diffuse: 0.7
+  specular: 0.3
+  shininess: 200.0
+  reflective: 0.6
+
+.mat.transparent:
+  texture:
+    color: [ 0.1, 0.1, 0.1 ]
+  ambient: 0.1
+  diffuse: 0.7
+  specular: 0.3
+  shininess: 100.0
+  transparency: 0.8
+  refractive_index: 1.5
+
+# the scene:
+
+camera:
+  width: 640
+  height: 480
+  field_of_view: 60.0
+  from: [ 0.0, 1.5, -5.0 ]
+  to: [ 0.0, 1.0, 0.0 ]
+
+lights:
+  - point:
+      position: [ -10.0, 10.0, -10.0 ]
+
+shapes:
+  - sphere:
+      material: .mat.green.reflect
+      transformations:
+        - translate: [ -0.5, 1.0, 0.5 ]
+  - sphere:
+      material: .mat.green.shiny
+      transformations:
+        - translate: [ 1.5, 0.5, -0.5 ]
+        - scale: [ 0.5, 0.5, 0.5 ]
+  - sphere:
+      material: .mat.transparent
+      transformations:
+        - translate: [ -1.5, 0.33, -0.75 ]
+        - scale: [ 0.35, 0.35, 0.35 ]
+  - plane:
+      material: .mat.blue.checkerboard
