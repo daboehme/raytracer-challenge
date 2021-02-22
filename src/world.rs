@@ -47,6 +47,25 @@ fn refraction_index_pair(hit: &Intersection, xs: &[Intersection]) -> (f32,f32) {
     (n1,n2)
 }
 
+fn schlick(n1: f32, n2: f32, normalv: V4, eyev: V4) -> f32 {
+    let mut cos = V4::dot(&eyev, &normalv);
+
+    if n1 > n2 {
+        let n = n1 / n2;
+        let sin2_t = n*n * (1.0 - cos*cos);
+
+        if sin2_t > 1.0 {
+            return 1.0
+        }
+
+        cos = (1.0 - sin2_t).sqrt()
+    }
+
+    let r0 = ((n1-n2) / (n1+n2)).powi(2);
+
+    return r0 + (1.0 - r0) * (1.0 - cos).powi(5)
+}
+
 pub struct World {
     lights: Vec<LightSource>,
     shapes: Vec< Rc<Shape> >,
@@ -97,19 +116,8 @@ impl World {
         }
     }
 
-    fn refraction
-        (
-            &self,
-            hit: &Intersection,
-            xs: &[Intersection],
-            point: V4,
-            normalv: V4,
-            eyev: V4,
-            recurse: u32
-        ) -> V4
+    fn refraction(&self, n_ratio: f32, point: V4, normalv: V4, eyev: V4, recurse: u32) -> V4
     {
-        let (n1,n2) = refraction_index_pair(hit, xs);
-        let n_ratio = n1 / n2;
         let cos_i   = V4::dot(&eyev, &normalv);
         let sin_2t  = n_ratio*n_ratio * (1.0 - cos_i*cos_i);
 
@@ -152,23 +160,29 @@ impl World {
         }
 
         if recurse > 0 {
-            if material.reflective > 0.0 {
+            let reflected = if material.reflective > 0.0 {
                 let rfl_ray = Ray::new(opoint, V4::reflect(ray.direction, normalv));
                 let rfl_clr = self.recursive_color_at(&rfl_ray, recurse-1);
 
-                colorv += rfl_clr * material.reflective;
-            }
+                rfl_clr * material.reflective
+            } else {
+                V4::from(Color::BLACK)
+            };
 
             if material.transparency > 0.0 {
-                colorv +=
-                    self.refraction(
-                        hit,
-                        xs,
-                        point - normalv * 0.0001,
-                        normalv,
-                        eyev,
-                        recurse-1
-                    ) * material.transparency
+                let (n1, n2) = refraction_index_pair(hit, xs);
+                let refracted = self.refraction(n1/n2, point-normalv*0.0001, normalv, eyev, recurse-1) * material.transparency;
+
+                if material.reflective > 0.0 {
+                    let reflectance = schlick(n1, n2, normalv, eyev);
+
+                    colorv += reflected * reflectance +
+                              refracted * (1.0 - reflectance)
+                } else {
+                    colorv += reflected + refracted
+                }
+            } else {
+                colorv += reflected
             }
         }
 
@@ -201,7 +215,7 @@ impl World {
 #[cfg(test)]
 mod tests {
     use crate::camera::Camera;
-    use crate::linalg::V4;
+    use crate::linalg::{M4,V4};
     use crate::material::{Material,Texture};
     use crate::sphere::Sphere;
     use crate::lighting::*;
@@ -476,11 +490,12 @@ mod tests {
             Intersection { distance:  sqrt2half, object: Rc::clone(&w.shapes[0]) }
         ];
 
-        let ray = Ray::new(V4::new_point(0.0, 0.0, sqrt2half), -V4::new_vector(0.0, 1.0, 0.0));
+        let ray = Ray::new(V4::new_point(0.0, 0.0, sqrt2half), V4::new_vector(0.0, 1.0, 0.0));
         let point = ray.position(xs[1].distance);
         let eyev = -ray.direction;
         let normalv = xs[1].object.normal_at(point);
-        let c = w.refraction(&xs[1], &xs, point, normalv, eyev, 5);
+        let (n1,n2) = super::refraction_index_pair(&xs[1], &xs);
+        let c = w.refraction(n1/n2, point, normalv, eyev, 5);
 
         assert_eq!(c, V4::from(Color::BLACK))
     }
@@ -548,7 +563,8 @@ mod tests {
             normalv = -normalv
         }
 
-        let c = w.refraction(&xs[2], &xs, point - normalv * 0.0001, normalv, eyev, 5);
+        let (n1,n2) = super::refraction_index_pair(&xs[2], &xs);
+        let c = w.refraction(n1/n2, point - normalv * 0.0001, normalv, eyev, 5);
 
         assert!(approx_eq!(V4, c, V4::new_vector(0.0, 0.99888, 0.04725), epsilon = 0.0001))
     }
@@ -601,5 +617,120 @@ mod tests {
         let c = w.shade(&ray, &xs[0], &xs, 5);
 
         assert!(approx_eq!(V4, c, V4::new_vector(0.93642, 0.68642, 0.68642), epsilon = 0.0001))
+    }
+
+    #[test]
+    fn schlick_internal_reflection() {
+        let mut m1 = MATERIAL;
+        m1.refractive_index = 1.5;
+
+        let s = Rc::new(Shape::new(Box::new(Sphere()), &m1, &M4::identity()));
+
+        let sqrt2half = 0.5 * std::f32::consts::SQRT_2;
+        let ray = Ray::new(V4::new_point(0.0, 0.0, sqrt2half), V4::new_vector(0.0, 1.0, 0.0));
+
+        let xs = vec![
+            Intersection { distance: -sqrt2half, object: Rc::clone(&s) },
+            Intersection { distance:  sqrt2half, object: Rc::clone(&s) }
+        ];
+
+        let point = ray.position(xs[1].distance);
+        let eyev = -ray.direction;
+        let normalv = xs[1].object.normal_at(point);
+        let (n1,n2) = super::refraction_index_pair(&xs[1], &xs);
+        assert_eq!(schlick(n1, n2, normalv, eyev), 1.0)
+    }
+
+
+    #[test]
+    fn schlick_perpendicular() {
+        let mut m1 = MATERIAL;
+        m1.refractive_index = 1.5;
+
+        let s = Rc::new(Shape::new(Box::new(Sphere()), &m1, &M4::identity()));
+
+        let xs = vec![
+            Intersection { distance: -1.0, object: Rc::clone(&s) },
+            Intersection { distance:  1.0, object: Rc::clone(&s) }
+        ];
+
+        let ray = Ray::new(V4::new_point(0.0, 0.0, 0.0), V4::new_vector(0.0, 1.0, 0.0));
+        let point = ray.position(xs[1].distance);
+        let eyev = -ray.direction;
+        let mut normalv = xs[1].object.normal_at(point);
+
+        if V4::dot(&normalv, &eyev) < 0.0 {
+            normalv = -normalv
+        }
+
+        let (n1,n2) = super::refraction_index_pair(&xs[1], &xs);
+        assert!(approx_eq!(f32, schlick(n1, n2, normalv, eyev), 0.04, epsilon=0.0001))
+    }
+
+    #[test]
+    fn schlick_small_angle() {
+        let mut m1 = MATERIAL;
+        m1.refractive_index = 1.5;
+
+        let s = Rc::new(Shape::new(Box::new(Sphere()), &m1, &M4::identity()));
+
+        let xs = vec![
+            Intersection { distance:  1.8589, object: Rc::clone(&s) }
+        ];
+
+        let ray = Ray::new(V4::new_point(0.0, 0.99, -2.0), V4::new_vector(0.0, 0.0, 1.0));
+        let point = ray.position(xs[0].distance);
+        let eyev = -ray.direction;
+        let mut normalv = xs[0].object.normal_at(point);
+
+        if V4::dot(&normalv, &eyev) < 0.0 {
+            normalv = -normalv
+        }
+
+        let (n1,n2) = super::refraction_index_pair(&xs[0], &xs);
+        assert!(approx_eq!(f32, schlick(n1, n2, normalv, eyev), 0.48873, epsilon=0.0001))
+    }
+
+    #[test]
+    fn fresnel() {
+        let mut w = make_world();
+
+        let t = Transform::new().translate(0.0, -1.0, 0.0);
+        let m = Material {
+            texture: Texture::Color(Color::WHITE),
+            ambient: 0.1,
+            diffuse: 0.9,
+            specular: 0.9,
+            shininess: 200.0,
+            reflective: 0.5,
+            transparency: 0.5,
+            refractive_index: 1.5
+        };
+
+        let floor = Rc::new(Shape::new(Box::new(Plane()), &m, &t.matrix));
+        w.shapes.push(Rc::clone(&floor));
+
+        let t = Transform::new().translate(0.0, -3.5, -0.5);
+        let m = Material {
+            texture: Texture::Color(Color::RED),
+            ambient: 0.5,
+            diffuse: 0.9,
+            specular: 0.9,
+            shininess: 200.0,
+            reflective: 0.0,
+            transparency: 0.0,
+            refractive_index: 1.0
+        };
+
+        w.shapes.push(Rc::new(Shape::new(Box::new(Sphere()), &m, &t.matrix)));
+
+        let sqrth = std::f32::consts::SQRT_2 * 0.5;
+
+        let r = Ray::new(V4::new_point(0.0, 0.0, -3.0), V4::new_vector(0.0, -sqrth, sqrth));
+
+        let xs = vec![ Intersection { distance: std::f32::consts::SQRT_2, object: Rc::clone(&floor) } ];
+
+        let c = w.shade(&r, &xs[0], &xs, 5);
+        assert!(approx_eq!(V4, c, V4::new_vector(0.93391, 0.69643, 0.69243), epsilon = 0.0001))
     }
 }
