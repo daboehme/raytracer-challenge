@@ -1,5 +1,6 @@
 use crate::camera::Camera;
 use crate::color::Color;
+use crate::cube::Cube;
 use crate::linalg::{M4,V4};
 use crate::lighting::LightSource;
 use crate::material::{Material,Texture};
@@ -349,7 +350,8 @@ fn read_shape(root: &Yaml, node: &Yaml) -> Result< Rc<Shape> > {
                     let key = key.as_str().unwrap();
 
                     let base: Box<dyn BaseShape> = match key {
-                        "plane" => Box::new(Plane()),
+                        "cube"   => Box::new(Cube()  ),
+                        "plane"  => Box::new(Plane() ),
                         "sphere" => Box::new(Sphere()),
                         _ => return Err(ParseError::UnknownValue(String::from(key)).into())
                     };

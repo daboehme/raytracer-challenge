@@ -4,6 +4,7 @@ mod camera;
 mod canvas;
 mod color;
 mod config;
+mod cube;
 mod lighting;
 mod linalg;
 mod material;
