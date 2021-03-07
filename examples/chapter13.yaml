@@ -1,0 +1,59 @@
+# definitions:
+
+.mat.blue.stripes:
+  texture:
+    stripes: 
+      a: [ 0.2, 0.4, 0.8 ]
+      b: [ 0.6, 0.8, 1.0 ]
+  ambient: 0.2
+  diffuse: 0.7
+  specular: 0.1
+  shininess: 20.0
+
+.mat.green.shiny:
+  texture:
+    color: [ 0.1, 1.0, 0.5 ]
+  ambient: 0.1
+  diffuse: 0.7
+  specular: 0.3
+  shininess: 200.0
+  transparency: 0.8
+
+.mat.red.ring:
+  texture:
+    ring:
+      a: [ 0.8, 0.4, 0.2 ]
+      b: [ 1.0, 0.8, 0.6 ]
+      transformations:
+        - scale: [ 0.2, 0.2, 0.2 ]
+        - rotate_z: 90.0
+  ambient: 0.1
+  diffuse: 0.7
+  specular: 0.3
+  shininess: 100.0
+
+# the scene:
+
+camera:
+  width: 640
+  height: 480
+  field_of_view: 60.0
+  from: [ 0.0, 5.0, -8.0 ]
+  to: [ 0.0, 1.0, 0.0 ]
+
+lights:
+  - point:
+      position: [ -10.0, 10.0, -10.0 ]
+
+shapes:
+  - cylinder:
+      min: -2.0
+      max: 2.0
+      material: .mat.red.ring
+      transformations:
+        - scale: [ 0.5, 1.0, 0.5 ]
+  - cylinder:
+      material: .mat.green.shiny
+      transformations:
+        - scale: [ 0.5, 0.5, 0.5 ]
+        - rotate_z: 90.0

@@ -5,6 +5,7 @@ mod canvas;
 mod color;
 mod config;
 mod cube;
+mod cylinder;
 mod lighting;
 mod linalg;
 mod material;

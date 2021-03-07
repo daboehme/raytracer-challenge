@@ -1,6 +1,7 @@
 use crate::camera::Camera;
 use crate::color::Color;
 use crate::cube::Cube;
+use crate::cylinder::Cylinder;
 use crate::linalg::{M4,V4};
 use crate::lighting::LightSource;
 use crate::material::{Material,Texture};
@@ -351,7 +352,17 @@ fn read_shape(root: &Yaml, node: &Yaml) -> Result< Rc<Shape> > {
 
                     let base: Box<dyn BaseShape> = match key {
                         "cube"   => Box::new(Cube()  ),
+                        "cylinder" => {
+                            let min = read_f32_or(&val["min"], std::f32::MIN)?;
+                            let max = read_f32_or(&val["max"], std::f32::MAX)?;
+                            Box::new(Cylinder::new_closed(min, max))
+                        },
                         "plane"  => Box::new(Plane() ),
+                        "pipe" => {
+                            let min = read_f32_or(&val["min"], std::f32::MIN)?;
+                            let max = read_f32_or(&val["max"], std::f32::MAX)?;
+                            Box::new(Cylinder::new_truncated(min, max))
+                        },
                         "sphere" => Box::new(Sphere()),
                         _ => return Err(ParseError::UnknownValue(String::from(key)).into())
                     };
