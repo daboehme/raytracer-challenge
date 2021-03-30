@@ -9,6 +9,7 @@ mod cylinder;
 mod lighting;
 mod linalg;
 mod material;
+mod mesh;
 mod pattern;
 mod plane;
 mod ray;
