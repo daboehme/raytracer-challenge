@@ -36,7 +36,7 @@ impl Triangle {
         if u < 0.0 || u > 1.0 {
             return None
         }
-        
+
         let origin_x_e1 = V4::cross(&p1_to_origin, &self.e[0]);
         let v = f * V4::dot(&ray.direction, &origin_x_e1);
 
@@ -50,7 +50,44 @@ impl Triangle {
     }
 }
 
+use std::io;
+use std::io::prelude::*;
 
+fn parse_obj(reader: &mut dyn io::BufRead) -> io::Result< Vec<Triangle> > {
+    let mut result = Vec::new();
+    let mut vertices = Vec::new();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut split = line.split_whitespace();
+        match split.next() {
+            Some("v") => {
+                let v: Vec<f32> = split.map(|s| s.parse::<f32>().unwrap()).collect();
+                if v.len() >= 3 {
+                    vertices.push( (v[0], v[1], v[2]) );
+                }
+                ()
+            }
+            Some("f") => {
+                let indices: Vec<i32> = split.map(|s| s.parse::<i32>().unwrap()).collect();
+                if indices.len() >= 3 {
+                    for index in 2..indices.len() {
+                        let v  = vertices[(indices[0      ] - 1) as usize];
+                        let p0 = V4::new_vector(v.0, v.1, v.2);
+                        let v  = vertices[(indices[index-1] - 1) as usize];
+                        let p1 = V4::new_vector(v.0, v.1, v.2);
+                        let v  = vertices[(indices[index  ] - 1) as usize];
+                        let p2 = V4::new_vector(v.0, v.1, v.2);
+                        result.push(Triangle::new(p0, p1, p2))
+                    }
+                }
+            }
+            _ => ()
+        }
+    }
+
+    Ok(result)
+}
 
 pub struct Mesh {
 
@@ -68,7 +105,7 @@ mod tests {
 
     #[test]
     fn new_triangle() {
-        let points = [ 
+        let points = [
             V4::new_point( 0.0, 1.0, 0.0),
             V4::new_point(-1.0, 0.0, 0.0),
             V4::new_point( 1.0, 0.0, 0.0)
@@ -82,7 +119,7 @@ mod tests {
 
     #[test]
     fn triangle_intersect() {
-        let points = [ 
+        let points = [
             V4::new_point( 0.0, 1.0, 0.0),
             V4::new_point(-1.0, 0.0, 0.0),
             V4::new_point( 1.0, 0.0, 0.0)
@@ -94,5 +131,28 @@ mod tests {
         assert_eq!(t.intersect(&Ray::new(V4::new_point(-1.0,  1.0, -2.0), V4::new_vector(0.0, 0.0, 1.0))), None);
         assert_eq!(t.intersect(&Ray::new(V4::new_point( 0.0, -1.0, -2.0), V4::new_vector(0.0, 0.0, 1.0))), None);
         assert_eq!(t.intersect(&Ray::new(V4::new_point( 0.0,  0.5, -2.0), V4::new_vector(0.0, 0.0, 1.0))), Some(2.0));
+    }
+
+    #[test]
+    fn parse_triangles() {
+        let mut input = "
+            v -1 1 0
+            v -1 0 0
+            v 1 0 0 
+            v 1 1 0
+            f 1 2 3
+            f 1 3 4
+        ".as_bytes();
+
+        let triangles = parse_obj(&mut input).unwrap();
+
+        assert_eq!(triangles.len(), 2);
+        assert_eq!(triangles[0].p[0], V4::new_vector(-1.0, 1.0, 0.0));
+        assert_eq!(triangles[0].p[1], V4::new_vector(-1.0, 0.0, 0.0));
+        assert_eq!(triangles[0].p[2], V4::new_vector( 1.0, 0.0, 0.0));
+
+        assert_eq!(triangles[1].p[0], V4::new_vector(-1.0, 1.0, 0.0));
+        assert_eq!(triangles[1].p[1], V4::new_vector( 1.0, 0.0, 0.0));
+        assert_eq!(triangles[1].p[2], V4::new_vector( 1.0, 1.0, 0.0));
     }
 }
