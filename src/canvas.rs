@@ -34,7 +34,7 @@ impl Canvas {
             unsafe {
                 (v.max(0.0).min(1.0) * 255.0).to_int_unchecked::<u8>()
             }
-        };
+        }
 
         for c in &self.data {
             write!(output, "{} {} {}\n", colorval(c.r), colorval(c.g), colorval(c.b))?;

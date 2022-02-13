@@ -39,7 +39,7 @@ impl From<Color> for Rgb<u8> {
             unsafe {
                 (v.max(0.0).min(1.0) * 255.0).to_int_unchecked::<u8>()
             }
-        };
+        }
 
         image::Rgb([to_u8(c.r), to_u8(c.g), to_u8(c.b)])
     }
